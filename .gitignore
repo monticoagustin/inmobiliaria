@@ -1,0 +1,11 @@
+node_modules/
+dist/
+.vite/
+*.blend1
+*.blend2
+*.blend@
+.env
+.env.*
+!.env.example
+.DS_Store
+Thumbs.db

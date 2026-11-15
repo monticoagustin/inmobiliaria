@@ -1,0 +1,122 @@
+name: Publicar en teskel.online/recorridos
+
+# En cada push a main, construye el visor y lo copia a la carpeta recorridos/
+# del repo del Space "teskel" en Spacefast. Spacefast publica teskel solo.
+# Solo se publica lo que sirve el visor: los planos, fotos, .blend y docs NO se publican.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: publicar-en-teskel-recorridos
+  cancel-in-progress: false
+
+env:
+  TESKEL_SPACE_ID: spc_02ae51f4db5a45b3a6c013388fe16504
+  CARPETA_DESTINO: recorridos
+
+jobs:
+  publicar:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Traer el repo inmobiliaria
+        uses: actions/checkout@v4
+        with:
+          path: app-src
+          lfs: true
+
+      - name: Construir el visor
+        working-directory: app-src/viewer
+        run: |
+          set -e
+          if [ -f package.json ]; then
+            npm ci
+            npm run build
+            echo "SALIDA=app-src/viewer/dist" >> "$GITHUB_ENV"
+          else
+            echo "SALIDA=app-src/viewer" >> "$GITHUB_ENV"
+          fi
+
+      - name: Validar antes de publicar
+        run: |
+          set -e
+          [ -f "$SALIDA/index.html" ] || { echo "::error::Falta index.html en $SALIDA"; exit 1; }
+          # Ningún .blend ni material de entrada puede terminar publicado.
+          if find "$SALIDA" -name '*.blend' -o -name '*.pdf' | grep -q .; then
+            echo "::error::Hay .blend o .pdf en la salida del visor."; exit 1
+          fi
+          for j in app-src/properties/*.json; do
+            [ -f "$j" ] && python3 -c "import json,sys; json.load(open(sys.argv[1]))" "$j"
+          done
+          echo "OK: visor listo para publicar"
+
+      - name: Pedir un remoto de push temporal para teskel
+        env:
+          SPACEFAST_TOKEN: ${{ secrets.SPACEFAST_TOKEN }}
+        run: |
+          if [ -z "$SPACEFAST_TOKEN" ]; then
+            echo "::error::Falta el secreto SPACEFAST_TOKEN en Settings → Secrets → Actions."; exit 1
+          fi
+          respuesta=$(curl -sS -w '\n%{http_code}' -X POST \
+            "https://api.spacefast.com/v1/spaces/${TESKEL_SPACE_ID}/source/push-remote" \
+            -H "Authorization: Bearer ${SPACEFAST_TOKEN}" \
+            -H "Content-Type: application/json" \
+            -d '{"ttlSeconds": 900}')
+          codigo=$(echo "$respuesta" | tail -n1)
+          cuerpo=$(echo "$respuesta" | sed '$d')
+          if [ "$codigo" -ge 300 ]; then
+            echo "::error::Spacefast respondió $codigo al pedir el remoto: $(echo "$cuerpo" | jq -r '.code // .title // .')"
+            exit 1
+          fi
+          url=$(echo "$cuerpo" | jq -r '[.. | objects | .pushUrl? // empty][0]')
+          if [ -z "$url" ] || [ "$url" = "null" ]; then
+            echo "::error::La respuesta de Spacefast no trae pushUrl."; exit 1
+          fi
+          echo "::add-mask::$url"
+          echo "TESKEL_REMOTE=$url" >> "$GITHUB_ENV"
+
+      - name: Clonar teskel
+        run: git clone --quiet --depth 1 --branch main "$TESKEL_REMOTE" teskel
+
+      - name: Copiar el visor y los assets a teskel/recorridos
+        run: |
+          mkdir -p "teskel/${CARPETA_DESTINO}"
+          # Visor (HTML, JS, CSS, íconos)
+          rsync -a --delete \
+            --exclude 'assets/' --exclude 'properties/' \
+            --include '*/' \
+            --include '*.html' --include '*.js' --include '*.css' --include '*.svg' \
+            --include '*.png' --include '*.webp' --include '*.json' --include '*.webmanifest' \
+            --exclude '*' \
+            "$SALIDA/" "teskel/${CARPETA_DESTINO}/"
+          # Modelos optimizados y su configuración (solo formatos web)
+          if [ -d app-src/assets ]; then
+            rsync -a --delete --prune-empty-dirs \
+              --include '*/' \
+              --include '*.glb' --include '*.ktx2' --include '*.webp' --include '*.jpg' \
+              --include '*.png' --include '*.bin' --include '*.hdr' \
+              --exclude '*' \
+              app-src/assets/ "teskel/${CARPETA_DESTINO}/assets/"
+          fi
+          if [ -d app-src/properties ]; then
+            rsync -a --delete --include '*.json' --exclude '*' \
+              app-src/properties/ "teskel/${CARPETA_DESTINO}/properties/"
+          fi
+
+      - name: Commit y push a teskel
+        working-directory: teskel
+        env:
+          MENSAJE_ORIGEN: ${{ github.event.head_commit.message }}
+        run: |
+          git add -A "${CARPETA_DESTINO}"
+          if git diff --cached --quiet; then
+            echo "Sin cambios en ${CARPETA_DESTINO}/; no hay nada que publicar."; exit 0
+          fi
+          git -c user.name="inmobiliaria (GitHub Actions)" \
+              -c user.email="actions@users.noreply.github.com" \
+              commit -q -m "recorridos: sincronizar desde monticoagustin/inmobiliaria@${GITHUB_SHA::7}" \
+                        -m "${MENSAJE_ORIGEN:-Ejecución manual}"
+          git push --quiet origin HEAD:main
+          echo "Publicado: https://teskel.online/${CARPETA_DESTINO}/"

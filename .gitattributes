@@ -1,0 +1,2 @@
+# Git LFS desactivado por ahora (el proxy de la sesión de Claude no permite subir objetos LFS).
+# Binarios livianos van directo en git. Revisar antes de subir .blend > 50 MB.
