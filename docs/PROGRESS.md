@@ -2,7 +2,7 @@
 
 ## Estado
 - [x] Fase 0 · Relevamiento Casa Oreja → `docs/relevamiento/fase-0-casa-oreja.md`
-- [ ] Fase 1 · Blocking en Blender (en curso, rama `fase-1-blocking`)
+- [x] Fase 1 · Blocking en Blender → `docs/validacion-casa-oreja.md` (rama `fase-1-blocking`)
 - [ ] Fase 2 · Materiales, mobiliario y luz
 - [ ] Fase 3 · Bake + export + optimización
 - [ ] Fase 4 · Visor con puntos de salto y dollhouse
@@ -15,6 +15,8 @@
 - Pasar el repo a privado: tiene fotos del aviso y planos.
 
 ## Deuda / soluciones a mano
+- El blocking se generó con scripts de bpy ejecutados por el conector. Para el servicio: extraer un script parametrizable (muros, aberturas y escalera desde una tabla) y guardarlo en `tools/`.
+- Las cámaras de comparación con fotos se ubicaron a mano. Para el servicio: hacer camera matching (fSpy o similar).
 - El .blend se guarda en `Desktop\Casa Oreja\blender\` y se sube a mano al repo. Para el servicio: definir una carpeta de trabajo estándar.
 - El plano A1 se tapó a mano. Para el servicio: pedirle al cliente planos sin datos personales.
 
