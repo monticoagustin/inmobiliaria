@@ -86,3 +86,4 @@ Archivo: `blender/casa-oreja/casa-oreja_v02.blend` (15 MB, con las texturas empa
 - **Parrillero rehecho** dentro de sus límites (no pasa al pasto ni a la altura de la pileta): boca de 1,20 m y mesada de apoyo con tapa a 0,95 y nicho abajo, que llega hasta el borde del solado del patio (Y 15,45), como pidió el usuario. Ver `comparaciones/parrilla-fotos-vs-modelo.jpg`.
 - **Bug corregido:** el terreno de entorno tapaba el vaso de la pileta (se veía pasto adentro). Ahora es un marco alrededor de los lotes.
 - Falta (menor): una caja baja de hormigón junto al cerco, en la foto 17 (posible casilla de la bomba de la pileta).
+- **Pileta corrida 0,50 m hacia el fondo** (indicación del usuario): el borde atérmico ya no se superpone al solado del patio. Agua de Y 15,95 a 22,95.
