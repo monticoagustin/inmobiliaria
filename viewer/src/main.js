@@ -5,6 +5,8 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { createIcons, List, Share2, Maximize, ChevronDown, ChevronLeft, ChevronRight, Eye, Box, X, Copy, MessageCircle } from 'lucide';
+createIcons({ icons: { List, Share2, Maximize, ChevronDown, ChevronLeft, ChevronRight, Eye, Box, X, Copy, MessageCircle } });
 
 const b2t = (x, y, z) => new THREE.Vector3(x, z, -y); // Blender → three (Y arriba)
 const $ = (id) => document.getElementById(id);
@@ -37,15 +39,49 @@ canvas.addEventListener('pointerdown', () => { estado.activo = true; orbit.enabl
 const corte = new THREE.Plane(new THREE.Vector3(0, -1, 0), 100);
 const marcadores = new THREE.Group(); scene.add(marcadores);
 let cfg, puntos = {};
+// superficies que reflejan: rugosidad e intensidad por material (nombre del material de Blender)
+const REFLEJA = [
+  [/^Porcelanato_Gris/, 0.16, 1.4], [/^Porcelanato_Cemento/, 0.24, 1.2], [/^Porcelanato_Exterior/, 0.45, 0.6],
+  [/^Piso_Flotante/, 0.34, 1.0], [/^Mesada/, 0.14, 1.3], [/^Azulejo/, 0.06, 1.4], [/^Vidrio_Negro/, 0.04, 1.6],
+  [/^Acero/, 0.22, 1.6], [/^Aluminio/, 0.28, 1.0], [/^Loza/, 0.08, 1.2], [/^Puerta_Placa/, 0.5, 0.35],
+  [/^Placard/, 0.36, 0.8], [/^Cocina_Melamina/, 0.38, 0.8], [/^Madera_Escalera/, 0.36, 0.8],
+];
+const reflectivos = []; let envRT = null; let pmrem = null;
 let cargaResto = Promise.resolve();
 const plantasCargadas = new Set(['Exterior']);
 const plantaDe = (f) => (/_pa/.test(f) ? 'Planta alta' : /_pb/.test(f) ? 'Planta baja' : 'Exterior');
 const colision = [];
 function agregarModelo(g) {
   g.scene.traverse((o) => {
-    if (o.isMesh) { o.material.side = THREE.DoubleSide; o.material.clippingPlanes = [corte]; colision.push(o); }
+    if (!o.isMesh) return;
+    const regla = REFLEJA.find(([re]) => re.test(o.material.name || ''));
+    if (regla && o.geometry.attributes.normal) {
+      const base = o.material;
+      o.material = new THREE.MeshStandardMaterial({
+        name: base.name, color: 0x000000, emissive: 0xffffff, emissiveMap: base.map,
+        roughness: regla[1], metalness: 0, envMapIntensity: regla[2],
+      });
+      reflectivos.push(o.material);
+    }
+    o.material.side = THREE.DoubleSide; o.material.clippingPlanes = [corte]; colision.push(o);
   });
   scene.add(g.scene);
+  if (envRT) for (const m of reflectivos) if (!m.envMap) { m.envMap = envRT.texture; m.needsUpdate = true; }
+}
+// captura del entorno desde la posición actual (6 vistas → PMREM); se rehace al llegar a cada punto
+const cubeRT = new THREE.WebGLCubeRenderTarget(256, { type: THREE.HalfFloatType });
+const cubeCam = new THREE.CubeCamera(0.05, 200, cubeRT);
+function capturarEntorno() {
+  if (!reflectivos.length) return;
+  pmrem ||= new THREE.PMREMGenerator(renderer);
+  const vis = marcadores.visible; marcadores.visible = false;
+  const clip = renderer.localClippingEnabled; renderer.localClippingEnabled = false;
+  for (const m of reflectivos) m.visible = true;
+  cubeCam.position.copy(camera.position); cubeCam.update(renderer, scene);
+  const nuevo = pmrem.fromCubemap(cubeRT.texture);
+  for (const m of reflectivos) { m.envMap = nuevo.texture; m.needsUpdate = true; }
+  envRT?.dispose(); envRT = nuevo;
+  marcadores.visible = vis; renderer.localClippingEnabled = clip;
 }
 
 // ---------- carga ----------
@@ -82,10 +118,12 @@ async function iniciar() {
     g.scene.traverse((o) => {
       if (!o.isMesh) return;
       const agua = /agua/i.test(o.material.name);
-      o.material = new THREE.MeshBasicMaterial({
-        color: agua ? 0x4fb3c6 : 0xd6e6ec, transparent: true, opacity: agua ? 0.78 : 0.16,
+      o.material = new THREE.MeshStandardMaterial({
+        name: agua ? 'Agua' : 'Vidrio', color: 0x000000, emissive: agua ? 0x3a9fb4 : 0xbfd3da, emissiveIntensity: agua ? 0.9 : 0.12,
+        roughness: 0.02, metalness: 0, envMapIntensity: agua ? 1.2 : 2.2, transparent: true, opacity: agua ? 0.85 : 0.22,
         depthWrite: false, side: THREE.DoubleSide, clippingPlanes: [corte],
       });
+      reflectivos.push(o.material);
       o.renderOrder = 2;
       if (!agua) colision.push(o);
     });
@@ -97,11 +135,12 @@ async function iniciar() {
     $('carga-fondo').hidden = false; $('carga-fondo').textContent = esAlta ? 'Cargando planta baja…' : 'Cargando planta alta…';
     const l2 = new GLTFLoader().setMeshoptDecoder(MeshoptDecoder);
     cargaResto = Promise.all(resto.map((f) => l2.loadAsync(base + f).then((g) => { plantasCargadas.add(plantaDe(f)); return g; }))).then((gs) => {
-      gs.forEach(agregarModelo); estado.completo = true; $('carga-fondo').hidden = true;
+      gs.forEach(agregarModelo); estado.completo = true; $('carga-fondo').hidden = true; capturarEntorno();
     });
   } else estado.completo = true;
   crearPuntos();
   armarLista();
+  armarPisos();
   armarMinimapa();
   armarEtiquetas();
   estado.cargado = true;
@@ -124,19 +163,32 @@ function crearEntorno(e) {
 }
 
 // ---------- puntos de recorrido ----------
-const geoAro = new THREE.RingGeometry(0.22, 0.30, 40);
-const geoCentro = new THREE.CircleGeometry(0.22, 40);
+function texturaMarcador(color, flecha) {
+  const c = document.createElement('canvas'); c.width = c.height = 256; const g = c.getContext('2d');
+  const m = 128;
+  const sombra = g.createRadialGradient(m, m, 70, m, m, 124); sombra.addColorStop(0, 'rgba(20,28,32,.35)'); sombra.addColorStop(1, 'rgba(20,28,32,0)');
+  g.fillStyle = sombra; g.beginPath(); g.arc(m, m, 124, 0, Math.PI * 2); g.fill();
+  g.fillStyle = 'rgba(255,255,255,.18)'; g.beginPath(); g.arc(m, m, 92, 0, Math.PI * 2); g.fill();
+  g.lineWidth = 12; g.strokeStyle = '#fff'; g.beginPath(); g.arc(m, m, 86, 0, Math.PI * 2); g.stroke();
+  g.fillStyle = color; g.beginPath(); g.arc(m, m, flecha ? 58 : 24, 0, Math.PI * 2); g.fill();
+  if (flecha) { // escalera: chevrons
+    g.strokeStyle = '#fff'; g.lineWidth = 12; g.lineCap = 'round'; g.lineJoin = 'round';
+    const d = flecha === 'subir' ? -1 : 1;
+    for (const o of [-12, 16]) { g.beginPath(); g.moveTo(m - 22, m + o * d + 10 * d); g.lineTo(m, m + o * d - 12 * d); g.lineTo(m + 22, m + o * d + 10 * d); g.stroke(); }
+  }
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; return t;
+}
+const geoMarca = new THREE.PlaneGeometry(0.78, 0.78);
 function crearPuntos() {
+  const acento = cfg.marca?.color || '#2f6f5e';
+  const tex = { normal: texturaMarcador(acento), subir: texturaMarcador(acento, 'subir'), bajar: texturaMarcador(acento, 'bajar') };
   for (const p of cfg.puntos) {
     puntos[p.id] = p;
-    const g = new THREE.Group();
-    const aro = new THREE.Mesh(geoAro, new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.95, depthTest: false }));
-    const centro = new THREE.Mesh(geoCentro, new THREE.MeshBasicMaterial({ color: p.ir ? cfg.marca?.color || 0x2f6f5e : 0xffffff, transparent: true, opacity: p.ir ? 0.85 : 0.28, depthTest: false }));
-    aro.renderOrder = centro.renderOrder = 5;
-    g.add(aro, centro); g.rotation.x = -Math.PI / 2;
+    const tipo = p.ir ? (p.id.includes('bajar') ? 'bajar' : 'subir') : 'normal';
+    const g = new THREE.Mesh(geoMarca, new THREE.MeshBasicMaterial({ map: tex[tipo], transparent: true, depthTest: false, depthWrite: false }));
+    g.renderOrder = 5; g.rotation.x = -Math.PI / 2;
     g.position.copy(b2t(p.pos[0], p.pos[1], p.piso + 0.03));
-    g.userData.punto = p.id; aro.userData.punto = p.id; centro.userData.punto = p.id;
-    marcadores.add(g); p.marcador = g;
+    g.userData.punto = p.id; marcadores.add(g); p.marcador = g;
   }
 }
 const nivel = (p) => (p.planta === 'Planta alta' ? 'alta' : 'baja');
@@ -174,9 +226,9 @@ function irA(id, instantaneo = false) {
   const ang = angulosHacia(destino, p);
   estado.punto = p.id; estado.piso = p.piso; estado.pisoObjetivo = p.piso;
   history.replaceState(null, '', `#punto=${p.id}`);
-  mostrarEtiqueta(p.nombre + (p.m2 ? ` · ${p.m2.toLocaleString('es-AR')} m²` : ''));
   if (instantaneo || reducirMovimiento) {
     camera.position.copy(destino); estado.yaw = ang.yaw; estado.pitch = ang.pitch; anim = null;
+    requestAnimationFrame(capturarEntorno);
   } else {
     // si es un salto largo o de planta, giramos hacia el ambiente; si es corto, mantenemos la mirada
     const cambiaPlanta = nivel(p) !== nivel(puntos[estado.anterior] || p);
@@ -185,16 +237,42 @@ function irA(id, instantaneo = false) {
              yaw0: estado.yaw, pitch0: estado.pitch, yaw1: lejos ? ang.yaw : estado.yaw, pitch1: lejos ? ang.pitch : estado.pitch };
   }
   estado.anterior = p.id;
-  actualizarMarcadores();
+  actualizarMarcadores(); actualizarBarra();
 }
 const suave = (t) => t * t * (3 - 2 * t);
 function difAng(a, b) { let d = b - a; while (d > Math.PI) d -= 2 * Math.PI; while (d < -Math.PI) d += 2 * Math.PI; return d; }
 
 let tEtiqueta;
-function mostrarEtiqueta(txt) {
-  const e = $('etiqueta'); e.textContent = txt; e.classList.add('visible');
-  clearTimeout(tEtiqueta); tEtiqueta = setTimeout(() => e.classList.remove('visible'), 1800);
+const recorridoOrden = () => cfg.puntos.filter((p) => !p.soloMarcador);
+function actualizarBarra() {
+  const p = puntos[estado.punto];
+  document.querySelectorAll('#lista-ambientes button').forEach((b) => b.classList.toggle('actual', b.dataset.punto === estado.punto));
+  $('plano-titulo').textContent = p && p.planta !== 'Exterior' ? p.planta : 'Terreno';
+  $('amb-nombre').textContent = p ? p.nombre : cfg.nombre;
+  $('amb-detalle').textContent = p ? (p.m2 ? `${p.planta} · ${p.m2.toLocaleString('es-AR')} m²` : p.planta) : '';
+  document.querySelectorAll('#pisos .seg').forEach((b) => b.classList.toggle('activo', p && b.dataset.planta === p.planta));
 }
+function paso(d) {
+  const lista = recorridoOrden(); const i = lista.findIndex((p) => p.id === estado.punto);
+  irA(lista[(i + d + lista.length) % lista.length].id);
+}
+function armarPisos() {
+  const cont = $('pisos'); const vistas = [];
+  for (const p of recorridoOrden()) if (!vistas.includes(p.planta)) vistas.push(p.planta);
+  for (const pl of vistas) {
+    const b = document.createElement('button'); b.className = 'seg'; b.dataset.planta = pl;
+    const corto = { 'Planta baja': 'PB', 'Planta alta': 'PA' }[pl] || pl;
+    b.innerHTML = `<span class="largo">${pl}</span><span class="corto">${corto}</span>`; b.title = pl;
+    b.addEventListener('click', () => irA(recorridoOrden().find((p) => p.planta === pl).id)); cont.appendChild(b);
+  }
+}
+$('btn-ant').addEventListener('click', () => paso(-1));
+$('btn-sig').addEventListener('click', () => paso(1));
+$('btn-minimapa').addEventListener('click', () => {
+  const pl = $('plano').classList.toggle('plegado');
+  $('btn-minimapa').setAttribute('aria-pressed', String(!pl)); $('btn-minimapa').title = pl ? 'Mostrar plano' : 'Ocultar plano';
+});
+function mostrarEtiqueta(txt) { $('amb-detalle').textContent = txt; }
 
 // ---------- interacción: mirar alrededor, tocar puntos, zoom ----------
 const ray = new THREE.Raycaster(); const ptr = new THREE.Vector2();
@@ -247,82 +325,29 @@ function puntoBajo(e) {
 function tocar(e) { const id = puntoBajo(e); if (id) irA(id); }
 let hoverId = null;
 function hover(e) {
-  const id = puntoBajo(e);
+  const id = puntoBajo(e); const tt = $('tooltip');
+  if (id) { const p = puntos[id]; tt.textContent = p.nombre; tt.style.left = e.clientX + 'px'; tt.style.top = (e.clientY - 18) + 'px'; tt.hidden = false; }
+  else tt.hidden = true;
   if (id === hoverId) return;
-  if (hoverId) puntos[hoverId].marcador.scale.setScalar(1);
   hoverId = id; canvas.style.cursor = id ? 'pointer' : '';
-  if (id) puntos[id].marcador.scale.setScalar(1.25);
 }
 
-// ---------- caminata libre: W A S D / flechas / joystick, con colisiones y escalera ----------
-const teclas = new Set();
-const mapa = { KeyW: 'ad', ArrowUp: 'ad', KeyS: 'at', ArrowDown: 'at', KeyA: 'iz', KeyD: 'de', ArrowLeft: 'gi', ArrowRight: 'gd', ShiftLeft: 'rap', ShiftRight: 'rap' };
+// teclado: flechas para girar la cámara (no se camina libremente: solo puntos de recorrido)
 window.addEventListener('keydown', (e) => {
-  if (estado.modo !== 'recorrido' || !mapa[e.code]) return;
-  teclas.add(mapa[e.code]); e.preventDefault(); ocultarAyuda();
+  if (estado.modo !== 'recorrido' || e.target.closest?.('input,textarea')) return;
+  const k = 0.08;
+  if (e.key === 'ArrowLeft') estado.yaw += k; else if (e.key === 'ArrowRight') estado.yaw -= k;
+  else if (e.key === 'ArrowUp') estado.pitch = Math.min(1.2, estado.pitch + k);
+  else if (e.key === 'ArrowDown') estado.pitch = Math.max(-1.2, estado.pitch - k);
+  else return;
+  e.preventDefault(); ocultarAyuda();
 });
-window.addEventListener('keyup', (e) => { if (mapa[e.code]) teclas.delete(mapa[e.code]); });
-window.addEventListener('blur', () => teclas.clear());
-const joy = { x: 0, y: 0, id: null };
-{
-  const j = $('joystick'), k = $('joy-perilla');
-  const mover = (e) => {
-    const r = j.getBoundingClientRect(); const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
-    let dx = e.clientX - cx, dy = e.clientY - cy; const m = Math.hypot(dx, dy), max = r.width / 2 - 10;
-    if (m > max) { dx *= max / m; dy *= max / m; }
-    joy.x = dx / max; joy.y = dy / max; k.style.transform = `translate(${dx}px, ${dy}px)`;
-  };
-  j.addEventListener('pointerdown', (e) => { joy.id = e.pointerId; j.setPointerCapture(e.pointerId); mover(e); ocultarAyuda(); e.stopPropagation(); });
-  j.addEventListener('pointermove', (e) => { if (e.pointerId === joy.id) mover(e); });
-  const fin = (e) => { if (e.pointerId !== joy.id) return; joy.id = null; joy.x = joy.y = 0; k.style.transform = ''; };
-  j.addEventListener('pointerup', fin); j.addEventListener('pointercancel', fin);
-}
-const rayM = new THREE.Raycaster(); rayM.far = 4;
-const ABAJO = new THREE.Vector3(0, -1, 0);
-function bloqueado(desde, dir, dist) {
-  const ojoAlt = desde.clone();
-  for (const h of [0.55, 1.1]) { // rodilla (sobre dos alzadas de escalera) y pecho, desde el piso
-    const o = ojoAlt.clone(); o.y = estado.piso + h;
-    rayM.set(o, dir); rayM.far = dist + 0.3;
-    if (rayM.intersectObjects(colision, false).length) return true;
-  }
-  return false;
-}
-function pisoBajo(pos) {
-  const o = pos.clone(); o.y = estado.piso + 0.55; // un poco arriba del piso actual: detecta escalones de subida
-  rayM.set(o, ABAJO); rayM.far = 4;
-  const h = rayM.intersectObjects(colision, false)[0];
-  return h ? h.point.y : null;
-}
-function caminar(dt) {
-  const ad = (teclas.has('ad') ? 1 : 0) - (teclas.has('at') ? 1 : 0) - joy.y;
-  const la = (teclas.has('de') ? 1 : 0) - (teclas.has('iz') ? 1 : 0);
-  const gi = (teclas.has('gi') ? 1 : 0) - (teclas.has('gd') ? 1 : 0) - joy.x * 0.9;
-  if (Math.abs(gi) > 0.02) estado.yaw += gi * dt * 1.6;
-  if (Math.abs(ad) < 0.05 && Math.abs(la) < 0.05) return false;
-  if (estado.piso == null) estado.piso = camera.position.y - (cfg.alturaOjo || 1.55);
-  const vel = (teclas.has('rap') ? 3.0 : 1.5) * dt;
-  const fr = new THREE.Vector3(-Math.sin(estado.yaw), 0, -Math.cos(estado.yaw));
-  const de = new THREE.Vector3(fr.z * -1, 0, fr.x);
-  const paso = fr.multiplyScalar(ad * vel).add(de.multiplyScalar(la * vel));
-  // deslizar contra las paredes: probar el movimiento completo, después cada eje
-  for (const intento of [paso, new THREE.Vector3(paso.x, 0, 0), new THREE.Vector3(0, 0, paso.z)]) {
-    const d = intento.length(); if (d < 1e-5) continue;
-    if (bloqueado(camera.position, intento.clone().normalize(), d)) continue;
-    const nueva = camera.position.clone().add(intento);
-    const y = pisoBajo(nueva);
-    if (y == null || Math.abs(y - estado.piso) > 0.45) continue; // sin piso, escalón alto o caída (pileta, hueco)
-    camera.position.copy(nueva); estado.pisoObjetivo = y;
-    break;
-  }
-  if (estado.punto) { estado.punto = null; history.replaceState(null, '', location.pathname + location.search); }
-  return true;
-}
 
 // ---------- modos: recorrido / maqueta ----------
 function ponerModo(m, silencioso = false) {
   estado.modo = m;
-  document.querySelectorAll('#modos .chip').forEach((b) => b.classList.toggle('activo', b.dataset.modo === m));
+  document.querySelectorAll('#modos .seg').forEach((b) => b.classList.toggle('activo', b.dataset.modo === m));
+  $('ficha').hidden = m === 'maqueta'; $('pisos').hidden = m === 'maqueta'; document.querySelector('#controles .separador').hidden = m === 'maqueta';
   $('plantas').hidden = m !== 'maqueta';
   if (m === 'maqueta') {
     orbit.enabled = true; renderer.localClippingEnabled = true; anim = null;
@@ -339,11 +364,11 @@ function ponerModo(m, silencioso = false) {
 }
 function ponerCorte(c) {
   estado.corte = c;
-  document.querySelectorAll('#plantas .chip').forEach((b) => b.classList.toggle('activo', b.dataset.corte === c));
+  document.querySelectorAll('#plantas .seg').forEach((b) => b.classList.toggle('activo', b.dataset.corte === c));
   corte.constant = c === 'pb' ? cfg.cortes.pb : c === 'pa' ? cfg.cortes.pa : 100;
 }
-document.querySelectorAll('#modos .chip').forEach((b) => b.addEventListener('click', () => ponerModo(b.dataset.modo)));
-document.querySelectorAll('#plantas .chip').forEach((b) => b.addEventListener('click', () => ponerCorte(b.dataset.corte)));
+document.querySelectorAll('#modos .seg').forEach((b) => b.addEventListener('click', () => ponerModo(b.dataset.modo)));
+document.querySelectorAll('#plantas .seg').forEach((b) => b.addEventListener('click', () => ponerCorte(b.dataset.corte)));
 
 // ---------- lista de ambientes ----------
 function armarLista() {
@@ -354,7 +379,7 @@ function armarLista() {
     const li = document.createElement('li'); li.className = 'grupo'; li.textContent = g; ul.appendChild(li);
     for (const p of ps) {
       const li2 = document.createElement('li'); const b = document.createElement('button');
-      b.textContent = p.nombre + (p.m2 ? ` · ${p.m2.toLocaleString('es-AR')} m²` : '');
+      b.innerHTML = `<span>${p.nombre}</span>` + (p.m2 ? `<small>${p.m2.toLocaleString('es-AR')} m²</small>` : ''); b.dataset.punto = p.id;
       b.addEventListener('click', () => { irA(p.id); toggleLista(false); });
       li2.appendChild(b); ul.appendChild(li2);
     }
@@ -368,7 +393,7 @@ $('btn-ambientes').addEventListener('click', () => toggleLista());
 
 // ---------- minimapa (plano con la ubicación) ----------
 const NS = 'http://www.w3.org/2000/svg';
-const svg = $('minimapa'); let svgAmb = [], svgYo, svgCono;
+const svg = $('minimapa'); let svgAmb = [], svgYo, svgCono, svgNorte, svgEscala;
 const el = (t, a) => { const n = document.createElementNS(NS, t); for (const k in a) n.setAttribute(k, a[k]); return n; };
 const sy = (y) => -y; // norte (fondo) arriba
 function armarMinimapa() {
@@ -386,11 +411,18 @@ function armarMinimapa() {
   }
   svgCono = el('path', { class: 'cono' }); svgYo = el('circle', { class: 'yo', r: 0.28 });
   svg.append(svgCono, svgYo);
+  // flecha de norte y escala gráfica de 1 m (se reubican con la ventana)
+  svgNorte = el('g', {}); svgNorte.append(el('path', { class: 'norte', d: 'M0,-0.55 L0.28,0.3 L0,0.12 L-0.28,0.3 Z' }));
+  const n = el('text', { class: 'norte-n', x: 0, y: -0.85 }); n.textContent = 'N'; svgNorte.appendChild(n);
+  svgEscala = el('g', {}); svgEscala.append(el('path', { class: 'escala', d: 'M0,0 L1,0 M0,-0.12 L0,0.12 M1,-0.12 L1,0.12' }));
+  const e = el('text', { x: 0.5, y: 0.42 }); e.textContent = '1 m'; svgEscala.appendChild(e);
+  svg.append(svgNorte, svgEscala);
 }
 function actualizarMinimapa() {
   if (!svgYo) return;
   const yo = posBlender(); const maq = estado.modo === 'maqueta';
   const alta = maq ? estado.corte !== 'pb' : yo.z > 3.6;
+  if (maq) $('plano-titulo').textContent = alta ? 'Planta alta' : 'Planta baja';
   svgYo.style.display = maq ? 'none' : '';
   for (const { g, r, a } of svgAmb) {
     g.style.display = (a.planta === 'alta') === alta ? '' : 'none';
@@ -401,6 +433,9 @@ function actualizarMinimapa() {
   const cy = maq ? 8.5 : THREE.MathUtils.clamp(yo.y, ly0 + H / 2 - 4, ly1 - H / 2 + 1);
   svg.setAttribute('viewBox', `${(lx0 + lx1) / 2 - W / 2} ${sy(cy) - H / 2} ${W} ${H}`);
   svgYo.setAttribute('cx', yo.x); svgYo.setAttribute('cy', sy(yo.y));
+  const vx = (lx0 + lx1) / 2 - W / 2, vy = sy(cy) - H / 2;
+  svgNorte.setAttribute('transform', `translate(${vx + W - 0.6} ${vy + 1.3})`);
+  svgEscala.setAttribute('transform', `translate(${vx + 0.4} ${vy + H - 0.6})`);
   const a = estado.yaw, L = 2.2, ap = 0.5; // dirección de la mirada en el plano
   const dir = (ang) => [yo.x - Math.sin(ang) * L, sy(yo.y + Math.cos(ang) * L)];
   const [p1, p2] = [dir(a - ap), dir(a + ap)];
@@ -455,13 +490,13 @@ document.querySelectorAll('[data-copiar]').forEach((b) => b.addEventListener('cl
 }));
 // pantalla completa (útil sobre todo insertado)
 if (document.fullscreenEnabled) {
-  $('btn-pantalla').hidden = !embebido;
+  $('btn-pantalla').hidden = false;
   $('btn-pantalla').addEventListener('click', () => (document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen()));
 }
 
 let ayudaOculta = false;
 function ocultarAyuda() { if (!ayudaOculta) { ayudaOculta = true; $('ayuda').classList.add('oculto'); } }
-if (matchMedia('(pointer: coarse)').matches) $('ayuda').textContent = 'Arrastrá para mirar · usá el joystick para caminar';
+if (matchMedia('(pointer: coarse)').matches) $('ayuda').textContent = 'Deslizá para mirar alrededor · tocá un círculo para moverte';
 setTimeout(ocultarAyuda, 9000);
 
 // ---------- bucle ----------
@@ -473,22 +508,17 @@ window.addEventListener('resize', ajustar); ajustar();
 const reloj = new THREE.Timer();
 renderer.setAnimationLoop(() => {
   reloj.update(); const dt = Math.min(reloj.getDelta(), 0.05);
+  const tt = performance.now() / 1000;
+  for (const p of Object.values(puntos)) if (p.marcador?.visible) {
+    const base = p.id === hoverId ? 1.25 : 1; p.marcador.scale.setScalar(base * (1 + 0.06 * Math.sin(tt * 2.4)));
+  }
   if (estado.modo === 'recorrido') {
     if (anim) {
       anim.t = Math.min(1, anim.t + dt / anim.dur); const s = suave(anim.t);
       camera.position.lerpVectors(anim.desde, anim.hasta, s);
       estado.yaw = anim.yaw0 + difAng(anim.yaw0, anim.yaw1) * s;
       estado.pitch = anim.pitch0 + (anim.pitch1 - anim.pitch0) * s;
-      if (anim.t >= 1) anim = null;
-    }
-    if (!anim && estado.cargado) {
-      const movio = caminar(dt);
-      if (estado.pisoObjetivo != null && estado.piso != null) {
-        const dif = estado.pisoObjetivo - estado.piso;
-        estado.piso += Math.abs(dif) < 0.005 ? dif : dif * Math.min(1, dt * 10);
-        camera.position.y = estado.piso + (cfg.alturaOjo || 1.55);
-      }
-      if (movio) actualizarMarcadores();
+      if (anim.t >= 1) { anim = null; capturarEntorno(); }
     }
     const fovBase = camera.aspect < 0.8 ? estado.fov + 8 : estado.fov; // celular vertical: más campo
     if (camera.fov !== fovBase) { camera.fov = fovBase; camera.updateProjectionMatrix(); }
