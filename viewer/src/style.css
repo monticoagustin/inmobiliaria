@@ -100,6 +100,8 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 #minimapa .ext { fill: rgba(30, 42, 47, .06); }
 #minimapa .ext.pileta { fill: rgba(78, 160, 182, .35); }
 #minimapa .ext.casa { fill: rgba(30, 42, 47, .1); }
+#minimapa .ext.vereda { fill: rgba(30, 42, 47, .12); }
+#minimapa .ext.calle { fill: rgba(30, 42, 47, .28); }
 #minimapa .amb { fill: rgba(255, 255, 255, .9); stroke: var(--tinta); stroke-width: .08; cursor: pointer; }
 #minimapa .amb:hover { fill: #fff; stroke-width: .12; }
 #minimapa .amb.actual { fill: color-mix(in srgb, var(--acento) 18%, white); }

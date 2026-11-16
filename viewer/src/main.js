@@ -46,6 +46,7 @@ const REFLEJA = [
   [/^Acero/, 0.22, 1.6], [/^Aluminio/, 0.28, 1.0], [/^Loza/, 0.08, 1.2], [/^Puerta_Placa/, 0.5, 0.35],
   [/^Placard/, 0.36, 0.8], [/^Cocina_Melamina/, 0.38, 0.8], [/^Madera_Escalera/, 0.36, 0.8],
 ];
+const sinReflejos = new URLSearchParams(location.search).has('sinreflejos'); // para comparar en QA
 const reflectivos = []; let envRT = null; let pmrem = null;
 let cargaResto = Promise.resolve();
 const plantasCargadas = new Set(['Exterior']);
@@ -55,7 +56,7 @@ function agregarModelo(g) {
   g.scene.traverse((o) => {
     if (!o.isMesh) return;
     const regla = REFLEJA.find(([re]) => re.test(o.material.name || ''));
-    if (regla && o.geometry.attributes.normal) {
+    if (regla && !sinReflejos && o.geometry.attributes.normal) {
       const base = o.material;
       o.material = new THREE.MeshStandardMaterial({
         name: base.name, color: 0x000000, emissive: 0xffffff, emissiveMap: base.map,
@@ -63,6 +64,7 @@ function agregarModelo(g) {
       });
       reflectivos.push(o.material);
     }
+    for (const t of [o.material.map, o.material.emissiveMap]) if (t) t.anisotropy = renderer.capabilities.getMaxAnisotropy();
     o.material.side = THREE.DoubleSide; o.material.clippingPlanes = [corte]; colision.push(o);
   });
   scene.add(g.scene);
@@ -296,8 +298,9 @@ canvas.addEventListener('pointermove', (e) => {
   const dx = e.clientX - arrastre.x, dy = e.clientY - arrastre.y;
   arrastre.x = e.clientX; arrastre.y = e.clientY;
   if (Math.hypot(e.clientX - arrastre.x0, e.clientY - arrastre.y0) > 6) arrastre.movio = true;
-  const k = (estado.fov / 70) * 0.0042;
-  estado.yaw += dx * k; estado.pitch = THREE.MathUtils.clamp(estado.pitch + dy * k, -1.2, 1.2);
+  // arrastrar mueve la vista hacia el mismo lado que el dedo/mouse (ejes invertidos a pedido)
+  const k = (estado.fov / 70) * 0.0021;
+  estado.yaw -= dx * k; estado.pitch = THREE.MathUtils.clamp(estado.pitch - dy * k, -1.2, 1.2);
   if (anim) { anim.yaw1 = estado.yaw; anim.pitch1 = estado.pitch; }
 });
 function finArrastre(e) {
