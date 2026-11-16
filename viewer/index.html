@@ -4,6 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="robots" content="noindex">
+  <meta name="theme-color" content="#1e2a2f">
   <title>Recorrido 3D</title>
   <link rel="stylesheet" href="./src/style.css">
 </head>
@@ -12,55 +13,78 @@
 
   <div id="carga" role="status">
     <div class="carga-caja">
-      <div class="carga-titulo" id="carga-titulo">Cargando recorrido…</div>
+      <div class="carga-titulo" id="carga-titulo">Preparando el recorrido</div>
       <div class="barra"><div class="barra-relleno" id="barra"></div></div>
       <div class="carga-texto" id="carga-texto">0 %</div>
     </div>
   </div>
 
-  <header id="marca">
+  <header id="marca" class="panel">
     <div class="marca-nombre" id="marca-nombre"></div>
     <div class="marca-sub" id="marca-sub"></div>
+    <div id="carga-fondo" hidden></div>
   </header>
 
-  <nav id="ambientes" aria-label="Ambientes">
-    <button id="btn-compartir" class="chip" aria-haspopup="dialog">Compartir</button>
-    <button id="btn-pantalla" class="chip" hidden aria-label="Pantalla completa">⛶</button>
-    <button id="btn-ambientes" class="chip" aria-expanded="false">Ambientes</button>
-    <ul id="lista-ambientes" hidden></ul>
-  </nav>
-
-  <div id="modos" role="group" aria-label="Vista">
-    <button class="chip activo" data-modo="recorrido">Recorrer</button>
-    <button class="chip" data-modo="maqueta">Maqueta</button>
+  <div id="acciones" class="panel grupo-iconos" role="toolbar" aria-label="Acciones">
+    <button id="btn-ambientes" class="icono" aria-expanded="false" aria-controls="lista-ambientes" title="Ambientes"><i data-lucide="list"></i><span>Ambientes</span></button>
+    <button id="btn-compartir" class="icono" aria-haspopup="dialog" title="Compartir"><i data-lucide="share-2"></i><span>Compartir</span></button>
+    <button id="btn-pantalla" class="icono" title="Pantalla completa" hidden><i data-lucide="maximize"></i><span class="sr">Pantalla completa</span></button>
   </div>
+  <ul id="lista-ambientes" class="panel" hidden></ul>
 
-  <div id="plantas" role="group" aria-label="Plantas" hidden>
-    <button class="chip" data-corte="completa">Completa</button>
-    <button class="chip" data-corte="pa">Planta alta</button>
-    <button class="chip activo" data-corte="pb">Planta baja</button>
-  </div>
+  <section id="plano" class="panel" aria-label="Plano con tu ubicación">
+    <div class="plano-cab">
+      <span id="plano-titulo">Planta baja</span>
+      <button id="btn-minimapa" class="mini-btn" aria-pressed="true" title="Ocultar plano"><i data-lucide="chevron-down"></i></button>
+    </div>
+    <svg id="minimapa" role="img" aria-label="Plano"></svg>
+  </section>
 
-  <div id="compartir" role="dialog" aria-modal="true" aria-labelledby="compartir-titulo" hidden>
-    <div class="panel">
-      <div class="panel-cab"><strong id="compartir-titulo">Compartir recorrido</strong><button class="cerrar" id="cerrar-compartir" aria-label="Cerrar">×</button></div>
-      <label class="campo">Link a esta vista
-        <span class="fila"><input id="txt-link" readonly><button class="chip" data-copiar="txt-link">Copiar</button></span>
-      </label>
-      <a id="lnk-whatsapp" class="chip whatsapp" target="_blank" rel="noopener">Enviar por WhatsApp</a>
-      <label class="campo">Código para insertar en una web
-        <span class="fila"><textarea id="txt-embed" rows="3" readonly></textarea><button class="chip" data-copiar="txt-embed">Copiar</button></span>
-      </label>
-      <a class="ayuda-embed" href="./embed-ejemplo.html" target="_blank" rel="noopener">Ver un ejemplo insertado</a>
+  <div id="barra-inferior">
+    <div id="ficha" class="panel">
+      <button class="flecha" id="btn-ant" aria-label="Ambiente anterior"><i data-lucide="chevron-left"></i></button>
+      <div id="ambiente-actual" aria-live="polite">
+        <span id="amb-nombre"></span>
+        <span id="amb-detalle"></span>
+      </div>
+      <button class="flecha" id="btn-sig" aria-label="Ambiente siguiente"><i data-lucide="chevron-right"></i></button>
+    </div>
+    <div id="controles" class="panel">
+      <div id="pisos" role="group" aria-label="Ir a"></div>
+      <div class="separador" aria-hidden="true"></div>
+      <div id="modos" role="group" aria-label="Vista">
+        <button class="seg activo" data-modo="recorrido" title="Recorrer"><i data-lucide="eye"></i><span>Recorrer</span></button>
+        <button class="seg" data-modo="maqueta" title="Maqueta"><i data-lucide="box"></i><span>Maqueta</span></button>
+      </div>
+    </div>
+    <div id="plantas" class="panel" role="group" aria-label="Corte de la maqueta" hidden>
+      <button class="seg" data-corte="completa">Completa</button>
+      <button class="seg" data-corte="pa">Planta alta</button>
+      <button class="seg activo" data-corte="pb">Planta baja</button>
     </div>
   </div>
 
-  <div id="etiqueta" aria-live="polite"></div>
-  <div id="ayuda">Arrastrá para mirar · tocá un círculo o caminá (W A S D)</div>
-  <svg id="minimapa" aria-label="Plano con tu ubicación" role="img"></svg>
-  <div id="joystick" aria-hidden="true"><div id="joy-perilla"></div></div>
+  <div id="ayuda">Arrastrá para mirar alrededor · tocá un círculo para moverte</div>
+  <div id="tooltip" hidden></div>
   <div id="etiquetas"></div>
-  <div id="carga-fondo" hidden>Cargando planta alta…</div>
+  <div id="etiqueta" aria-hidden="true"></div>
+
+  <div id="compartir" role="dialog" aria-modal="true" aria-labelledby="compartir-titulo" hidden>
+    <div class="dialogo">
+      <div class="dialogo-cab">
+        <strong id="compartir-titulo">Compartir recorrido</strong>
+        <button class="mini-btn" id="cerrar-compartir" aria-label="Cerrar"><i data-lucide="x"></i></button>
+      </div>
+      <label class="campo">Link a esta vista
+        <span class="fila"><input id="txt-link" readonly><button class="boton" data-copiar="txt-link"><i data-lucide="copy"></i><span>Copiar</span></button></span>
+      </label>
+      <a id="lnk-whatsapp" class="boton whatsapp" target="_blank" rel="noopener"><i data-lucide="message-circle"></i><span>Enviar por WhatsApp</span></a>
+      <label class="campo">Código para insertar en una web
+        <span class="fila"><textarea id="txt-embed" rows="3" readonly></textarea><button class="boton" data-copiar="txt-embed"><i data-lucide="copy"></i><span>Copiar</span></button></span>
+      </label>
+      <a class="enlace" href="./embed-ejemplo.html" target="_blank" rel="noopener">Ver un ejemplo insertado en una ficha</a>
+    </div>
+  </div>
 
   <script type="module" src="./src/main.js"></script>
 </body>
