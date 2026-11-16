@@ -118,7 +118,9 @@ for g in GRUPOS:
 # horneado
 sc.render.engine = 'CYCLES'
 sc.render.bake.margin = 4
+SOLO = globals().get('SOLO')  # opcional: hornear solo estos grupos (los demás conservan su horneado)
 for g, (res, spp) in GRUPOS.items():
+    if SOLO and g not in SOLO: continue
     t0 = time.time(); o = objs[g]
     if len(o.data.polygons) == 0: log(f'{g} vacío'); continue
     nombre = 'BK_' + g[2:]
