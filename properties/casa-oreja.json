@@ -8,6 +8,7 @@
   "carpeta": "assets/casa-oreja/",
   "modelos": [
     "exterior.glb",
+    "exterior_det.glb",
     "interior_pb.glb",
     "interior_pa.glb"
   ],
@@ -279,7 +280,7 @@
       "soloMarcador": true
     }
   ],
-  "cargaInicial": 2,
+  "cargaInicial": 3,
   "plano": {
     "lote": [
       0,

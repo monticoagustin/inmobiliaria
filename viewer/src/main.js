@@ -39,15 +39,49 @@ canvas.addEventListener('pointerdown', () => { estado.activo = true; orbit.enabl
 const corte = new THREE.Plane(new THREE.Vector3(0, -1, 0), 100);
 const marcadores = new THREE.Group(); scene.add(marcadores);
 let cfg, puntos = {};
+// superficies que reflejan: rugosidad e intensidad por material (nombre del material de Blender)
+const REFLEJA = [
+  [/^Porcelanato_Gris/, 0.16, 1.4], [/^Porcelanato_Cemento/, 0.24, 1.2], [/^Porcelanato_Exterior/, 0.45, 0.6],
+  [/^Piso_Flotante/, 0.34, 1.0], [/^Mesada/, 0.14, 1.3], [/^Azulejo/, 0.06, 1.4], [/^Vidrio_Negro/, 0.04, 1.6],
+  [/^Acero/, 0.22, 1.6], [/^Aluminio/, 0.28, 1.0], [/^Loza/, 0.08, 1.2], [/^Puerta_Placa/, 0.5, 0.35],
+  [/^Placard/, 0.36, 0.8], [/^Cocina_Melamina/, 0.38, 0.8], [/^Madera_Escalera/, 0.36, 0.8],
+];
+const reflectivos = []; let envRT = null; let pmrem = null;
 let cargaResto = Promise.resolve();
 const plantasCargadas = new Set(['Exterior']);
 const plantaDe = (f) => (/_pa/.test(f) ? 'Planta alta' : /_pb/.test(f) ? 'Planta baja' : 'Exterior');
 const colision = [];
 function agregarModelo(g) {
   g.scene.traverse((o) => {
-    if (o.isMesh) { o.material.side = THREE.DoubleSide; o.material.clippingPlanes = [corte]; colision.push(o); }
+    if (!o.isMesh) return;
+    const regla = REFLEJA.find(([re]) => re.test(o.material.name || ''));
+    if (regla && o.geometry.attributes.normal) {
+      const base = o.material;
+      o.material = new THREE.MeshStandardMaterial({
+        name: base.name, color: 0x000000, emissive: 0xffffff, emissiveMap: base.map,
+        roughness: regla[1], metalness: 0, envMapIntensity: regla[2],
+      });
+      reflectivos.push(o.material);
+    }
+    o.material.side = THREE.DoubleSide; o.material.clippingPlanes = [corte]; colision.push(o);
   });
   scene.add(g.scene);
+  if (envRT) for (const m of reflectivos) if (!m.envMap) { m.envMap = envRT.texture; m.needsUpdate = true; }
+}
+// captura del entorno desde la posición actual (6 vistas → PMREM); se rehace al llegar a cada punto
+const cubeRT = new THREE.WebGLCubeRenderTarget(256, { type: THREE.HalfFloatType });
+const cubeCam = new THREE.CubeCamera(0.05, 200, cubeRT);
+function capturarEntorno() {
+  if (!reflectivos.length) return;
+  pmrem ||= new THREE.PMREMGenerator(renderer);
+  const vis = marcadores.visible; marcadores.visible = false;
+  const clip = renderer.localClippingEnabled; renderer.localClippingEnabled = false;
+  for (const m of reflectivos) m.visible = true;
+  cubeCam.position.copy(camera.position); cubeCam.update(renderer, scene);
+  const nuevo = pmrem.fromCubemap(cubeRT.texture);
+  for (const m of reflectivos) { m.envMap = nuevo.texture; m.needsUpdate = true; }
+  envRT?.dispose(); envRT = nuevo;
+  marcadores.visible = vis; renderer.localClippingEnabled = clip;
 }
 
 // ---------- carga ----------
@@ -84,10 +118,12 @@ async function iniciar() {
     g.scene.traverse((o) => {
       if (!o.isMesh) return;
       const agua = /agua/i.test(o.material.name);
-      o.material = new THREE.MeshBasicMaterial({
-        color: agua ? 0x4fb3c6 : 0xd6e6ec, transparent: true, opacity: agua ? 0.78 : 0.16,
+      o.material = new THREE.MeshStandardMaterial({
+        name: agua ? 'Agua' : 'Vidrio', color: 0x000000, emissive: agua ? 0x3a9fb4 : 0xbfd3da, emissiveIntensity: agua ? 0.9 : 0.12,
+        roughness: 0.02, metalness: 0, envMapIntensity: agua ? 1.2 : 2.2, transparent: true, opacity: agua ? 0.85 : 0.22,
         depthWrite: false, side: THREE.DoubleSide, clippingPlanes: [corte],
       });
+      reflectivos.push(o.material);
       o.renderOrder = 2;
       if (!agua) colision.push(o);
     });
@@ -99,7 +135,7 @@ async function iniciar() {
     $('carga-fondo').hidden = false; $('carga-fondo').textContent = esAlta ? 'Cargando planta baja…' : 'Cargando planta alta…';
     const l2 = new GLTFLoader().setMeshoptDecoder(MeshoptDecoder);
     cargaResto = Promise.all(resto.map((f) => l2.loadAsync(base + f).then((g) => { plantasCargadas.add(plantaDe(f)); return g; }))).then((gs) => {
-      gs.forEach(agregarModelo); estado.completo = true; $('carga-fondo').hidden = true;
+      gs.forEach(agregarModelo); estado.completo = true; $('carga-fondo').hidden = true; capturarEntorno();
     });
   } else estado.completo = true;
   crearPuntos();
@@ -192,6 +228,7 @@ function irA(id, instantaneo = false) {
   history.replaceState(null, '', `#punto=${p.id}`);
   if (instantaneo || reducirMovimiento) {
     camera.position.copy(destino); estado.yaw = ang.yaw; estado.pitch = ang.pitch; anim = null;
+    requestAnimationFrame(capturarEntorno);
   } else {
     // si es un salto largo o de planta, giramos hacia el ambiente; si es corto, mantenemos la mirada
     const cambiaPlanta = nivel(p) !== nivel(puntos[estado.anterior] || p);
@@ -481,7 +518,7 @@ renderer.setAnimationLoop(() => {
       camera.position.lerpVectors(anim.desde, anim.hasta, s);
       estado.yaw = anim.yaw0 + difAng(anim.yaw0, anim.yaw1) * s;
       estado.pitch = anim.pitch0 + (anim.pitch1 - anim.pitch0) * s;
-      if (anim.t >= 1) anim = null;
+      if (anim.t >= 1) { anim = null; capturarEntorno(); }
     }
     const fovBase = camera.aspect < 0.8 ? estado.fov + 8 : estado.fov; // celular vertical: más campo
     if (camera.fov !== fovBase) { camera.fov = fovBase; camera.updateProjectionMatrix(); }
