@@ -12,6 +12,8 @@ const reducirMovimiento = window.matchMedia('(prefers-reduced-motion: reduce)').
 
 const params = new URLSearchParams(location.search);
 const idProp = (params.get('p') || 'casa-oreja').replace(/[^a-z0-9-]/gi, '');
+const embebido = params.has('embed') || window.self !== window.top;
+if (embebido) document.body.classList.add('embebido');
 
 const estado = { modo: 'recorrido', punto: null, yaw: 0, pitch: 0, fov: 70, corte: 'pb', cargado: false };
 window.__visor = estado; // para pruebas automáticas
@@ -29,7 +31,8 @@ const camera = new THREE.PerspectiveCamera(70, 1, 0.05, 400);
 estado.cam = camera;
 camera.rotation.order = 'YXZ';
 const orbit = new OrbitControls(camera, canvas);
-orbit.enabled = false; orbit.enableDamping = true; orbit.maxPolarAngle = Math.PI * 0.48; orbit.minDistance = 6; orbit.maxDistance = 60;
+orbit.enabled = false; orbit.enableDamping = true; orbit.enableZoom = !embebido;
+canvas.addEventListener('pointerdown', () => { estado.activo = true; orbit.enableZoom = true; }); orbit.maxPolarAngle = Math.PI * 0.48; orbit.minDistance = 6; orbit.maxDistance = 60;
 
 const corte = new THREE.Plane(new THREE.Vector3(0, -1, 0), 100);
 const marcadores = new THREE.Group(); scene.add(marcadores);
@@ -156,6 +159,10 @@ function angulosHacia(desde, p) {
 }
 
 let anim = null;
+window.addEventListener('hashchange', () => {
+  const id = (location.hash.match(/punto=([\w-]+)/) || [])[1];
+  if (id && id !== estado.punto && estado.cargado) irA(id);
+});
 function irA(id, instantaneo = false) {
   let p = puntos[id]; if (!p) return;
   if (p.ir) p = puntos[p.ir];
@@ -197,7 +204,7 @@ canvas.addEventListener('pointerdown', (e) => {
   if (estado.modo !== 'recorrido') return;
   canvas.setPointerCapture(e.pointerId);
   arrastre = { x: e.clientX, y: e.clientY, x0: e.clientX, y0: e.clientY, movio: false, d0: null, fov0: estado.fov };
-  canvas.classList.add('arrastrando'); ocultarAyuda();
+  canvas.classList.add('arrastrando'); ocultarAyuda(); estado.activo = true;
 });
 canvas.addEventListener('pointermove', (e) => {
   if (toques.has(e.pointerId)) toques.set(e.pointerId, { x: e.clientX, y: e.clientY });
@@ -225,6 +232,7 @@ canvas.addEventListener('pointerup', finArrastre);
 canvas.addEventListener('pointercancel', finArrastre);
 canvas.addEventListener('wheel', (e) => {
   if (estado.modo !== 'recorrido') return;
+  if (embebido && !estado.activo) return; // dentro de otra página: no secuestrar el scroll
   e.preventDefault(); estado.fov = THREE.MathUtils.clamp(estado.fov + e.deltaY * 0.03, 35, 85);
 }, { passive: false });
 
@@ -424,6 +432,31 @@ function actualizarEtiquetas() {
     if (vTmp.z > 1) { e.b.style.display = 'none'; continue; }
     e.b.style.display = ''; e.b.style.left = ((vTmp.x + 1) / 2 * innerWidth) + 'px'; e.b.style.top = ((1 - vTmp.y) / 2 * innerHeight) + 'px';
   }
+}
+
+// ---------- compartir: link, WhatsApp e inserción ----------
+function urlBase() { const u = new URL(location.href); u.hash = ''; u.searchParams.delete('embed'); if (idProp !== 'casa-oreja') u.searchParams.set('p', idProp); return u.toString().replace(/\?$/, ''); }
+function abrirCompartir() {
+  const link = urlBase() + (estado.punto ? `#punto=${estado.punto}` : '');
+  const u = new URL(urlBase()); u.searchParams.set('p', idProp); u.searchParams.set('embed', '1');
+  $('txt-link').value = link;
+  $('txt-embed').value = `<iframe src="${u}" title="Recorrido 3D · ${cfg.nombre}" style="width:100%;aspect-ratio:16/9;border:0;border-radius:12px" allow="fullscreen" allowfullscreen loading="lazy"></iframe>`;
+  $('lnk-whatsapp').href = 'https://wa.me/?text=' + encodeURIComponent(`Mirá el recorrido 3D: ${cfg.nombre} ${link}`);
+  $('compartir').hidden = false; $('cerrar-compartir').focus();
+}
+$('btn-compartir').addEventListener('click', abrirCompartir);
+$('cerrar-compartir').addEventListener('click', () => { $('compartir').hidden = true; $('btn-compartir').focus(); });
+$('compartir').addEventListener('click', (e) => { if (e.target.id === 'compartir') $('compartir').hidden = true; });
+window.addEventListener('keydown', (e) => { if (e.key === 'Escape') $('compartir').hidden = true; });
+document.querySelectorAll('[data-copiar]').forEach((b) => b.addEventListener('click', async () => {
+  const t = $(b.dataset.copiar); t.select();
+  try { await navigator.clipboard.writeText(t.value); } catch { document.execCommand('copy'); }
+  const txt = b.textContent; b.textContent = 'Copiado'; setTimeout(() => (b.textContent = txt), 1500);
+}));
+// pantalla completa (útil sobre todo insertado)
+if (document.fullscreenEnabled) {
+  $('btn-pantalla').hidden = !embebido;
+  $('btn-pantalla').addEventListener('click', () => (document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen()));
 }
 
 let ayudaOculta = false;

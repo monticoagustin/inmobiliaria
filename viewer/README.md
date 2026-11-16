@@ -20,3 +20,13 @@ npm ci
 npm run build   # salida en dist/ (JS en dist/app/ para no chocar con assets/)
 ```
 Para probar en local, copiar `dist/*`, `../assets` y `../properties` a una carpeta y servirla con cualquier servidor estático.
+
+## Insertar en otra web (embed)
+```html
+<iframe src="https://teskel.online/recorridos/?p=casa-oreja&embed=1"
+  title="Recorrido 3D" style="width:100%;aspect-ratio:16/9;border:0;border-radius:12px"
+  allow="fullscreen" allowfullscreen loading="lazy"></iframe>
+```
+- `embed=1` (o estar dentro de un iframe): no secuestra el scroll de la página hasta que el usuario toca el recorrido, y muestra un botón de pantalla completa.
+- El botón **Compartir** del visor arma el link a la vista actual, el envío por WhatsApp y este código.
+- Ejemplo: `embed-ejemplo.html`.
