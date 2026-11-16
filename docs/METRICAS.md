@@ -4,6 +4,7 @@
 
 | Fase | Claude | Usuario | Máquina | Automático | Manual | Notas |
 |---|---|---|---|---|---|---|
+| 4 · Visor | ~45 min (11:22–12:05, 16/11) | 0 | build < 2 s; carga local 2,1 s | Build, pruebas con Chrome sin pantalla en escritorio y celular | Diseño del visor, puntos de recorrido y vistas iniciales | 2 rondas de ajuste de puntos (cocina, palier) |
 | 3 · Bake + export | ~1 h 25 min (10:50–12:15, 16/11) | ~5 min (revisión) | ~11 min de bake + 2 min de limpieza de ruido | Separar grupos, mapeo de luz, horneado, limpieza de ruido OIDN, export GLB, optimización, prueba web | Elegir resoluciones y exposiciones; revisar atlas y comparación | 1 bug propio (texturas invertidas) detectado en la comparación web |
 | 2 · Materiales y luz | ~45 min (14:58–15:45) | 0 | 6 rondas de renders de 3–10 s c/u (~4 min en total) | Descarga de texturas, materiales, asignación por cara, sanitarios, puertas, perfiles, rejas, pileta, renders | Elegir texturas y colores mirando las fotos; ubicar cámaras; 3 iteraciones de color y luz | 2 bugs propios (vidrios con revoque y perfiles con vidrio) detectados en la comparación con fotos |
 | 1 · Blocking | ~12 min (14:41–14:53) | 0 | renders de validación < 1 min | Construcción de muros, aberturas, losas, escalera y exterior desde datos; render de cortes; superposición con el plano | Leer el detalle de la escalera; medir aberturas sin cota sobre el dibujo; ubicar cámaras | 3 correcciones después de superponer (ventana de cocina, placard, ventana de escalera) |

@@ -5,7 +5,7 @@
 - [x] Fase 1 · Blocking en Blender → `docs/validacion-casa-oreja.md` (rama `fase-1-blocking`)
 - [x] Fase 2 · Materiales, terminaciones y luz → `docs/validacion-casa-oreja.md` (rama `fase-2-materiales`)
 - [x] Fase 3 · Bake + export + optimización → `assets/casa-oreja/` (4,1 MB), rama `fase-3-bake`
-- [ ] Fase 4 · Visor con puntos de salto y dollhouse
+- [x] Fase 4 · Visor con puntos de salto y maqueta → `viewer/`, `properties/casa-oreja.json` (rama `fase-4-visor`)
 - [ ] Fase 5 · Caminata, minimapa, etiquetas, QA mobile
 - [ ] Fase 6 · Marca blanca, embed, variantes, métricas
 - [ ] Fase 7 · Informe del piloto
@@ -16,6 +16,8 @@
 - Pasar el repo a privado: tiene fotos del aviso y planos.
 
 ## Deuda / soluciones a mano
+- Puntos del recorrido cargados a mano en el JSON. Para el servicio: exportarlos desde Blender (empties con nombre) o elegirlos con un editor visual.
+- El JS del visor pesa ~600 kB (three.js completo). Separar en partes o recortar lo que no se usa.
 - Atlas de luz: ~25 % del espacio se pierde en caras ocultas (losas bajo pisos, cantos de muros dentro de otros). Borrarlas antes del mapeo da más resolución con el mismo peso.
 - Exterior: barrotes, perfiles y postes ocupan mucho atlas. Hornearlos aparte en baja resolución o con color plano.
 - Texturas en WebP y no en KTX2 (falta el binario toktx en la sesión). KTX2 ahorra memoria de GPU en celulares.
