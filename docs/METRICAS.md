@@ -4,6 +4,7 @@
 
 | Fase | Claude | Usuario | Máquina | Automático | Manual | Notas |
 |---|---|---|---|---|---|---|
+| Ajustes v05 (mirar, sólidos, calle) | ~1 h 30 min (16:36–18:05, 16/11) | 0 | 3 horneados (12, 12 y 20 min) | Colores sólidos desde el promedio de cada textura, vereda/calle, pruebas de arrastre y piso | Diagnóstico del glitch (superposición + ruido) | 2 causas del glitch: losa y piso en el mismo plano, y ruido de luz en ambientes oscuros |
 | Mejoras 1+3+4 (reflejos, detalle, luz) | ~1 h 40 min (14:20–16:00, 16/11) | ~2 min (reabrir Blender) | 3 horneados de ~12 min (2 fallidos) | Script de horneado, armado de GLB, pruebas en 8 puntos | Elegir reflectividad por material, revisar capturas | 2 bugs propios del horneado (borrado de caras y zonas) detectados en las capturas; Blender se colgó una vez |
 | 5 · Caminata y QA | ~1 h (11:43–12:45, 16/11) | ~2 min (pedido de sacar la vecina) | re-bake interiores 9 min + exterior 1,2 min | Pruebas automáticas de caminata, escalera, links y UI | Caminata, minimapa, etiquetas, carga progresiva | 1 bug de modelo de la Fase 1 (toilette/escalera) y 1 bug propio de carga, detectados por las pruebas |
 | 4 · Visor | ~45 min (11:22–12:05, 16/11) | 0 | build < 2 s; carga local 2,1 s | Build, pruebas con Chrome sin pantalla en escritorio y celular | Diseño del visor, puntos de recorrido y vistas iniciales | 2 rondas de ajuste de puntos (cocina, palier) |

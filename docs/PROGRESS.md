@@ -19,6 +19,9 @@
   - Luz más eficiente: se borran las caras completamente tapadas antes del mapeo, y rejas, postes y perfiles exteriores se hornean aparte a 1024 px (`exterior_det.glb`). Los GLB pasaron de 3,6 MB a 2,1 MB.
   - El horneado ahora es un script repetible: `tools/hornear_casa.py` (parámetros de la propiedad arriba de todo).
 
+- Ajustes v05 (`casa-oreja_v05.blend`): mirar 50 % más lento y con ejes invertidos; maderas, melaminas, revoque y porcelanato del baño en color sólido; vereda y calle al frente (supuesto T13); losa de PA bajada 2 cm bajo el piso (se pisaban y el piso parpadeaba); horneado de interiores a 512 muestras + albedo, y limpieza de ruido separando luz y color con suavizado de la luz. GLB totales: 1,1 MB.
+- `?sinreflejos` en la URL apaga los reflejos (para comparar en QA).
+
 ## Pendiente de confirmar
 - Supuestos de geometría y terminaciones: `docs/supuestos-casa-oreja.md`.
 - Supuestos de la Fase 0 (plano principal, unidad izquierda, fondo de 32,20 m, norte al fondo).
@@ -34,6 +37,8 @@
 - El borrado de caras tapadas solo usa objetos que son cajas simples (8 vértices). Los muros con bisel o formas en L no tapan: queda algo de atlas desperdiciado.
 - Reflejos: la reflectividad por material está en una tabla del visor (`REFLEJA` en `main.js`), por nombre de material de Blender. Para el servicio: pasarla al JSON o leerla del material.
 - El dormitorio del frente se ve oscuro en el horneado (luz solo por la ventana del balcón). Revisar con foto si hay.
+- El suavizado de la luz (SIGMA_LUZ=7 en interiores, 2,5 en exterior) ablanda los bordes de las manchas de sol. Si se notan, subir muestras en vez de suavizar.
+- Caras superpuestas (dos superficies a la misma altura) no se detectan solas: revisar en el modelo de cada propiedad que los pisos no compartan plano con la losa.
 - Texturas en WebP y no en KTX2 (falta el binario toktx en la sesión). KTX2 ahorra memoria de GPU en celulares.
 - Las llamadas a la PC cortan a los 80 s: los procesos largos de Blender se lanzan con `bpy.app.timers` y se controlan por archivos.
 - Texturas: se bajan de Poly Haven desde Blender (API pública, CC0) y se empaquetan en el .blend. Para el servicio: una biblioteca propia de materiales en `tools/materiales/`.

@@ -7,7 +7,7 @@
 INTERIOR = dict(x=(3.0, 7.8), y=(4.0, 12.94))   # planta de la casa (con muros)
 PISOS = {'B_Interior_PB': (0.0, 2.82), 'B_Interior_PA': (2.93, 5.57)}  # de piso a cielorraso de cada planta
 GRUPOS = {  # nombre: (resolución, muestras)
-    'B_Interior_PB': (4096, 256), 'B_Interior_PA': (4096, 256),
+    'B_Interior_PB': (4096, 512), 'B_Interior_PA': (4096, 512),
     'B_Exterior': (4096, 256), 'B_Exterior_Det': (1024, 128),
 }
 DET = ("Reja_", "Poste_", "Alambre_", "Pergola_", "Carp_", "Baranda_", "Det_Picaporte", "Det_Toma", "Marco_")
@@ -134,6 +134,10 @@ for g, (res, spp) in GRUPOS.items():
     sc.cycles.samples = spp
     bpy.ops.object.bake(type='DIFFUSE', pass_filter={'DIRECT', 'INDIRECT', 'COLOR'}, margin=4, use_clear=True, uv_layer='Lightmap')
     img.filepath_raw = os.path.join(dir_bake, f'{nombre}_raw.exr'); img.file_format = 'OPEN_EXR'; img.save()
+    # albedo (solo color, sin luz): ayuda al limpiador de ruido a separar luz de color
+    sc.cycles.samples = 4
+    bpy.ops.object.bake(type='DIFFUSE', pass_filter={'COLOR'}, margin=4, use_clear=True, uv_layer='Lightmap')
+    img.filepath_raw = os.path.join(dir_bake, f'{nombre}_alb.exr'); img.save()
     log(f'{g} {res} {spp} {time.time() - t0:.1f}s')
 
 # exportar GLB
