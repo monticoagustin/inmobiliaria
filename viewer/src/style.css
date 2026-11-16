@@ -66,3 +66,20 @@ html, body { margin: 0; height: 100%; overflow: hidden; background: #cfe0f2; col
 #etiquetas button small { display: block; font-weight: 400; color: #5a6168; font-size: 11px; }
 #carga-fondo { position: fixed; left: 12px; top: 64px; font-size: 12px; background: rgba(255,255,255,.9); padding: 5px 9px; border-radius: 8px; box-shadow: var(--sombra); z-index: 5; }
 #carga-fondo[hidden] { display: none; }
+
+#ambientes { display: flex; gap: 8px; align-items: flex-start; flex-wrap: wrap; justify-content: flex-end; }
+#ambientes #lista-ambientes { flex-basis: 100%; }
+#btn-pantalla[hidden] { display: none; }
+#compartir[hidden] { display: none; }
+#compartir { position: fixed; inset: 0; background: rgba(0,0,0,.35); display: grid; place-items: center; z-index: 30; }
+#compartir .panel { width: min(460px, 92vw); background: #fff; border-radius: 14px; padding: 16px; box-shadow: var(--sombra); display: grid; gap: 12px; }
+.panel-cab { display: flex; justify-content: space-between; align-items: center; }
+.cerrar { border: 0; background: none; font-size: 24px; line-height: 1; cursor: pointer; padding: 4px 8px; }
+.campo { display: grid; gap: 6px; font-size: 13px; color: #4a5258; }
+.fila { display: flex; gap: 8px; align-items: stretch; }
+.fila input, .fila textarea { flex: 1; font: 12px ui-monospace, Menlo, monospace; border: 1px solid #d3d9de; border-radius: 8px; padding: 8px; resize: none; min-width: 0; }
+.chip.whatsapp { text-align: center; text-decoration: none; background: #25d366; color: #fff; }
+.ayuda-embed { font-size: 13px; color: var(--acento); }
+body.embebido #marca { max-width: 45vw; }
+body.embebido #ayuda { display: none; }
+@media (max-width: 480px) { #btn-compartir { padding: 8px 10px; } }

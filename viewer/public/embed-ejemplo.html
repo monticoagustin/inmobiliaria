@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title>Ejemplo de inserción · Recorrido 3D</title>
+  <style>
+    body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; color: #1d1f1e; background: #f4f5f6; }
+    .aviso { background: #fff7d6; color: #5b4a00; font-size: 13px; padding: 8px 16px; text-align: center; }
+    main { max-width: 980px; margin: 0 auto; padding: 24px 16px 48px; }
+    h1 { font-size: 26px; margin: 0 0 4px; }
+    .sub { color: #5a6168; margin: 0 0 20px; }
+    .datos { display: flex; flex-wrap: wrap; gap: 10px; margin: 18px 0; }
+    .datos span { background: #fff; border-radius: 10px; padding: 8px 12px; font-size: 14px; box-shadow: 0 1px 4px rgba(0,0,0,.08); }
+    pre { background: #1d1f1e; color: #e8eaeb; padding: 14px; border-radius: 10px; overflow: auto; font-size: 12px; }
+  </style>
+</head>
+<body>
+  <div class="aviso">Página de ejemplo: muestra cómo se ve el recorrido insertado en la ficha de una propiedad.</div>
+  <main>
+    <h1>Dúplex 2 dormitorios</h1>
+    <p class="sub">Ficha de ejemplo · el recorrido de abajo es el mismo de teskel.online/recorridos</p>
+
+    <iframe src="./?p=casa-oreja&embed=1" title="Recorrido 3D · Dúplex 2 dormitorios"
+      style="width:100%;aspect-ratio:16/9;border:0;border-radius:12px;background:#dfe7ee"
+      allow="fullscreen" allowfullscreen loading="lazy"></iframe>
+
+    <div class="datos"><span>2 dormitorios</span><span>1 baño + toilette</span><span>Pileta</span><span>Cochera con pérgola</span></div>
+
+    <h2>Cómo insertarlo</h2>
+    <p>Copiá este código y pegalo en la página donde quieras mostrar el recorrido (también lo da el botón <em>Compartir</em> del visor):</p>
+    <pre>&lt;iframe src="https://teskel.online/recorridos/?p=casa-oreja&amp;embed=1"
+  title="Recorrido 3D" style="width:100%;aspect-ratio:16/9;border:0;border-radius:12px"
+  allow="fullscreen" allowfullscreen loading="lazy"&gt;&lt;/iframe&gt;</pre>
+  </main>
+</body>
+</html>

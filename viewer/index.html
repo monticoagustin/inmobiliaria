@@ -24,6 +24,8 @@
   </header>
 
   <nav id="ambientes" aria-label="Ambientes">
+    <button id="btn-compartir" class="chip" aria-haspopup="dialog">Compartir</button>
+    <button id="btn-pantalla" class="chip" hidden aria-label="Pantalla completa">⛶</button>
     <button id="btn-ambientes" class="chip" aria-expanded="false">Ambientes</button>
     <ul id="lista-ambientes" hidden></ul>
   </nav>
@@ -37,6 +39,20 @@
     <button class="chip" data-corte="completa">Completa</button>
     <button class="chip" data-corte="pa">Planta alta</button>
     <button class="chip activo" data-corte="pb">Planta baja</button>
+  </div>
+
+  <div id="compartir" role="dialog" aria-modal="true" aria-labelledby="compartir-titulo" hidden>
+    <div class="panel">
+      <div class="panel-cab"><strong id="compartir-titulo">Compartir recorrido</strong><button class="cerrar" id="cerrar-compartir" aria-label="Cerrar">×</button></div>
+      <label class="campo">Link a esta vista
+        <span class="fila"><input id="txt-link" readonly><button class="chip" data-copiar="txt-link">Copiar</button></span>
+      </label>
+      <a id="lnk-whatsapp" class="chip whatsapp" target="_blank" rel="noopener">Enviar por WhatsApp</a>
+      <label class="campo">Código para insertar en una web
+        <span class="fila"><textarea id="txt-embed" rows="3" readonly></textarea><button class="chip" data-copiar="txt-embed">Copiar</button></span>
+      </label>
+      <a class="ayuda-embed" href="./embed-ejemplo.html" target="_blank" rel="noopener">Ver un ejemplo insertado</a>
+    </div>
   </div>
 
   <div id="etiqueta" aria-live="polite"></div>

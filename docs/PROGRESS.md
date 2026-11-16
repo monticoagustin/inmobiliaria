@@ -7,7 +7,8 @@
 - [x] Fase 3 · Bake + export + optimización → `assets/casa-oreja/` (4,1 MB), rama `fase-3-bake`
 - [x] Fase 4 · Visor con puntos de salto y maqueta → `viewer/`, `properties/casa-oreja.json` (rama `fase-4-visor`)
 - [x] Fase 5 · Caminata, minimapa, etiquetas, carga progresiva (QA en teléfonos reales pendiente)
-- [ ] Fase 6 · Marca blanca, embed, variantes, métricas
+- [x] Fase 6 (parcial) · Embed, botón Compartir (link, WhatsApp, código) y ejemplo insertado. Marca blanca por JSON desde la Fase 4. Variantes y métricas: pendientes
+- [ ] ~~Fase 7 · Informe del piloto~~ (descartado por el usuario)
 - [ ] Fase 7 · Informe del piloto
 
 ## Pendiente de confirmar
