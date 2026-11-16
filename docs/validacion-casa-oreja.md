@@ -87,3 +87,44 @@ Archivo: `blender/casa-oreja/casa-oreja_v02.blend` (15 MB, con las texturas empa
 - **Bug corregido:** el terreno de entorno tapaba el vaso de la pileta (se veía pasto adentro). Ahora es un marco alrededor de los lotes.
 - Falta (menor): una caja baja de hormigón junto al cerco, en la foto 17 (posible casilla de la bomba de la pileta).
 - **Pileta corrida 0,50 m hacia el fondo** (indicación del usuario): el borde atérmico ya no se superpone al solado del patio. Agua de Y 15,95 a 22,95.
+
+---
+
+# Fase 3 · Horneado de luz y export web
+
+Archivo: `blender/casa-oreja/casa-oreja_v03.blend`, con la colección `BAKE` (grupos horneados) y la escena `WEB_TEST`. Antes se corrigió el frente de la mesada de la parrilla para alinearlo con la boca (X 6,95).
+
+## Grupos y horneado (Cycles, RTX 2060)
+| Grupo | Superficie | Textura | Muestras | Tiempo |
+|---|---|---|---|---|
+| Interior PB | 310 m² | 4096² | 256 | ~5 min |
+| Interior PA | 418 m² | 4096² | 256 | 4,4 min |
+| Exterior (casa + terreno) | 1367 m² | 4096² | 256 | 1,3 min |
+| Contexto (unidad espejada) | 1856 m² | 2048² | 128 | 0,2 min |
+
+- Las caras se separan según **hacia dónde miran** (interior o exterior), para usar exposición de interior (+1,5) y de exterior (−0,3), como las fotos HDR.
+- Ruido: se limpia con **OIDN** (el mismo denoiser de Blender) y se tonemapea a sRGB: `tools/limpiar_y_tonemapear_lightmap.py`.
+- Vidrios y agua no se hornean: van aparte, con material transparente.
+
+## Archivos web (`assets/casa-oreja/`)
+| Archivo | Peso |
+|---|---|
+| interior_pb.glb | 1,16 MB |
+| interior_pa.glb | 1,42 MB |
+| exterior.glb | 1,08 MB |
+| contexto.glb | 0,57 MB |
+| vidrios.glb + ctx_vidrios.glb | 0,01 MB |
+| **Total** | **4,1 MB** |
+
+Meta: < 5 MB la primera vista y < 40 MB el total. **Cumple: la casa entera pesa menos que la meta de la primera vista.**
+Material sin iluminación (KHR_materials_unlit), texturas WebP y geometría con meshopt + cuantización: `tools/armar_glb.mjs`.
+
+## Verificación
+`comparaciones/fotos-vs-cycles-vs-web.jpg`: foto | render Cycles | GLB web reimportado y renderizado sin luces (lo mismo que va a mostrar el navegador).
+La versión web reproduce el render de Cycles (luz, sombras y manchas de sol). Diferencias que resuelve el visor (Fase 4):
+- En esta prueba los vidrios se ven celestes opacos; en three.js van transparentes.
+- Falta el terreno de entorno fuera de los lotes: lo pone el visor.
+- Hay costuras finas en algunas aristas de muros.
+
+## Bugs propios corregidos en esta fase
+- Las texturas de luz estaban invertidas verticalmente (supuse mal el origen del EXR). Se detectó en la comparación web y se corrigió.
