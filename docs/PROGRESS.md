@@ -11,6 +11,10 @@
 - [ ] ~~Fase 7 · Informe del piloto~~ (descartado por el usuario)
 - [ ] Fase 7 · Informe del piloto
 
+## Cambios recientes
+- Visor v2: interfaz rediseñada (Schibsted Grotesk + íconos Lucide, ficha del ambiente, plano con norte y escala). Sin caminata libre: solo puntos de recorrido con giro de cámara.
+- Modelo: sin tanque; muro lateral pegado a la reja y extendido hasta el fin del patio; exterior re-horneado.
+
 ## Pendiente de confirmar
 - Supuestos de geometría y terminaciones: `docs/supuestos-casa-oreja.md`.
 - Supuestos de la Fase 0 (plano principal, unidad izquierda, fondo de 32,20 m, norte al fondo).
