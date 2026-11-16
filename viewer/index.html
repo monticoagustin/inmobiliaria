@@ -2,22 +2,50 @@
 <html lang="es">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="robots" content="noindex">
-  <title>Recorridos 3D · en preparación</title>
-  <style>
-    html,body{margin:0;height:100%;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;background:#f4f2ee;color:#2b2a28}
-    main{height:100%;display:grid;place-items:center;text-align:center;padding:24px;box-sizing:border-box}
-    h1{font-size:clamp(22px,4vw,34px);font-weight:600;margin:0 0 8px}
-    p{margin:0;color:#6b6862}
-  </style>
+  <title>Recorrido 3D</title>
+  <link rel="stylesheet" href="./src/style.css">
 </head>
 <body>
-  <main>
-    <div>
-      <h1>Recorridos 3D</h1>
-      <p>Visor en preparación.</p>
+  <canvas id="escena" aria-label="Recorrido 3D de la propiedad"></canvas>
+
+  <div id="carga" role="status">
+    <div class="carga-caja">
+      <div class="carga-titulo" id="carga-titulo">Cargando recorrido…</div>
+      <div class="barra"><div class="barra-relleno" id="barra"></div></div>
+      <div class="carga-texto" id="carga-texto">0 %</div>
     </div>
-  </main>
+  </div>
+
+  <header id="marca">
+    <div class="marca-nombre" id="marca-nombre"></div>
+    <div class="marca-sub" id="marca-sub"></div>
+  </header>
+
+  <nav id="ambientes" aria-label="Ambientes">
+    <button id="btn-ambientes" class="chip" aria-expanded="false">Ambientes</button>
+    <ul id="lista-ambientes" hidden></ul>
+  </nav>
+
+  <div id="modos" role="group" aria-label="Vista">
+    <button class="chip activo" data-modo="recorrido">Recorrer</button>
+    <button class="chip" data-modo="maqueta">Maqueta</button>
+  </div>
+
+  <div id="plantas" role="group" aria-label="Plantas" hidden>
+    <button class="chip" data-corte="completa">Completa</button>
+    <button class="chip" data-corte="pa">Planta alta</button>
+    <button class="chip activo" data-corte="pb">Planta baja</button>
+  </div>
+
+  <div id="etiqueta" aria-live="polite"></div>
+  <div id="ayuda">Arrastrá para mirar · tocá un círculo o caminá (W A S D)</div>
+  <svg id="minimapa" aria-label="Plano con tu ubicación" role="img"></svg>
+  <div id="joystick" aria-hidden="true"><div id="joy-perilla"></div></div>
+  <div id="etiquetas"></div>
+  <div id="carga-fondo" hidden>Cargando planta alta…</div>
+
+  <script type="module" src="./src/main.js"></script>
 </body>
 </html>
