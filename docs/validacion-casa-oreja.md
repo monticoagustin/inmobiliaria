@@ -81,3 +81,8 @@ Archivo: `blender/casa-oreja/casa-oreja_v02.blend` (15 MB, con las texturas empa
 2. Faltan detalles menores que muestran las fotos: tomacorrientes, artefactos de luz, calefón, bajadas pluviales, apliques exteriores y la chimenea del tanque.
 3. Las cámaras de comparación se ubicaron a mano (sin camera matching), así que el encuadre difiere un poco.
 4. Supuestos de terminaciones: ver `supuestos-casa-oreja.md` (T1–T9).
+
+### Correcciones posteriores (revisión del usuario)
+- **Parrillero rehecho** dentro de sus límites (no pasa al pasto ni a la altura de la pileta): boca de 1,20 m y mesada de apoyo de 0,50 m con tapa a 0,95 y nicho abajo. Ver `comparaciones/parrilla-fotos-vs-modelo.jpg`.
+- **Bug corregido:** el terreno de entorno tapaba el vaso de la pileta (se veía pasto adentro). Ahora es un marco alrededor de los lotes.
+- Falta (menor): una caja baja de hormigón junto al cerco, en la foto 17 (posible casilla de la bomba de la pileta).

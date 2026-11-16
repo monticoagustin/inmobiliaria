@@ -25,4 +25,4 @@ Lo que no surge de los planos ni de las fotos. Cada punto queda **a confirmar** 
 | T7 | Agua de la pileta limpia | Las fotos la muestran verde, sin mantenimiento. Es estado, no terminación |
 | T8 | Puertas interiores abiertas a 90° | Hace falta para el recorrido. En las fotos están cerradas |
 | T9 | Casa vacía, sin muebles | Igual que las fotos. El amoblado será una variante aparte |
-| T10 | Módulo junto a la parrilla, contra la medianera: 0,90 m de largo × 0,75 de profundidad, h 1,90, con nicho abierto abajo (0,10–0,95) hacia la pileta | Fotos 16 y 17 (no figura en el plano) |
+| T10 | Conjunto parrillero dentro de Y 12,94–14,91 (plano 1,88 + corte 1,97), contra la medianera, boca hacia la pileta: muro contra la casa 0,15, boca 1,20 (mesada a 0,95, refractario, dintel hasta 2,30), tabique 0,12, mesada de apoyo 0,50 × 0,60 con tapa a 0,95, nicho abierto abajo y muros de fondo y cierre hasta 1,90 | Plano + corte B + proporciones medidas en la foto 17 |
