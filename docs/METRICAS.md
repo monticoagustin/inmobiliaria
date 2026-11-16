@@ -4,6 +4,7 @@
 
 | Fase | Claude | Usuario | Máquina | Automático | Manual | Notas |
 |---|---|---|---|---|---|---|
+| 5 · Caminata y QA | ~1 h (11:43–12:45, 16/11) | ~2 min (pedido de sacar la vecina) | re-bake interiores 9 min + exterior 1,2 min | Pruebas automáticas de caminata, escalera, links y UI | Caminata, minimapa, etiquetas, carga progresiva | 1 bug de modelo de la Fase 1 (toilette/escalera) y 1 bug propio de carga, detectados por las pruebas |
 | 4 · Visor | ~45 min (11:22–12:05, 16/11) | 0 | build < 2 s; carga local 2,1 s | Build, pruebas con Chrome sin pantalla en escritorio y celular | Diseño del visor, puntos de recorrido y vistas iniciales | 2 rondas de ajuste de puntos (cocina, palier) |
 | 3 · Bake + export | ~1 h 25 min (10:50–12:15, 16/11) | ~5 min (revisión) | ~11 min de bake + 2 min de limpieza de ruido | Separar grupos, mapeo de luz, horneado, limpieza de ruido OIDN, export GLB, optimización, prueba web | Elegir resoluciones y exposiciones; revisar atlas y comparación | 1 bug propio (texturas invertidas) detectado en la comparación web |
 | 2 · Materiales y luz | ~45 min (14:58–15:45) | 0 | 6 rondas de renders de 3–10 s c/u (~4 min en total) | Descarga de texturas, materiales, asignación por cara, sanitarios, puertas, perfiles, rejas, pileta, renders | Elegir texturas y colores mirando las fotos; ubicar cámaras; 3 iteraciones de color y luz | 2 bugs propios (vidrios con revoque y perfiles con vidrio) detectados en la comparación con fotos |

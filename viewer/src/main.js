@@ -15,6 +15,7 @@ const idProp = (params.get('p') || 'casa-oreja').replace(/[^a-z0-9-]/gi, '');
 
 const estado = { modo: 'recorrido', punto: null, yaw: 0, pitch: 0, fov: 70, corte: 'pb', cargado: false };
 window.__visor = estado; // para pruebas automáticas
+Object.defineProperty(estado, 'cam', { value: null, writable: true, enumerable: false });
 
 const canvas = $('escena');
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
@@ -25,6 +26,7 @@ renderer.localClippingEnabled = false;
 
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(70, 1, 0.05, 400);
+estado.cam = camera;
 camera.rotation.order = 'YXZ';
 const orbit = new OrbitControls(camera, canvas);
 orbit.enabled = false; orbit.enableDamping = true; orbit.maxPolarAngle = Math.PI * 0.48; orbit.minDistance = 6; orbit.maxDistance = 60;
@@ -32,6 +34,16 @@ orbit.enabled = false; orbit.enableDamping = true; orbit.maxPolarAngle = Math.PI
 const corte = new THREE.Plane(new THREE.Vector3(0, -1, 0), 100);
 const marcadores = new THREE.Group(); scene.add(marcadores);
 let cfg, puntos = {};
+let cargaResto = Promise.resolve();
+const plantasCargadas = new Set(['Exterior']);
+const plantaDe = (f) => (/_pa/.test(f) ? 'Planta alta' : /_pb/.test(f) ? 'Planta baja' : 'Exterior');
+const colision = [];
+function agregarModelo(g) {
+  g.scene.traverse((o) => {
+    if (o.isMesh) { o.material.side = THREE.DoubleSide; o.material.clippingPlanes = [corte]; colision.push(o); }
+  });
+  scene.add(g.scene);
+}
 
 // ---------- carga ----------
 async function iniciar() {
@@ -51,16 +63,18 @@ async function iniciar() {
   const loader = new GLTFLoader(manager).setMeshoptDecoder(MeshoptDecoder);
   const base = cfg.carpeta;
   const cargar = (f) => loader.loadAsync(base + f);
+  // primero el exterior y la planta donde arranca el recorrido; el resto en segundo plano
+  const inicialId = (location.hash.match(/punto=([\w-]+)/) || [])[1];
+  const pIni = cfg.puntos.find((p) => p.id === inicialId) || cfg.puntos.find((p) => p.id === cfg.inicio);
+  const esAlta = pIni && pIni.planta === 'Planta alta';
+  const prioridad = (f) => (/exterior/.test(f) ? 0 : (esAlta ? /_pa/.test(f) : /_pb/.test(f)) ? 1 : 2);
+  const orden = [...cfg.modelos].sort((a, b) => prioridad(a) - prioridad(b));
+  const nIni = cfg.cargaInicial || orden.length;
   const [modelos, vidrios] = await Promise.all([
-    Promise.all(cfg.modelos.map(cargar)),
+    Promise.all(orden.slice(0, nIni).map((f) => cargar(f).then((g) => { plantasCargadas.add(plantaDe(f)); return g; }))),
     Promise.all((cfg.vidrios || []).map(cargar)),
   ]);
-  for (const g of modelos) {
-    g.scene.traverse((o) => {
-      if (o.isMesh) { o.material.side = THREE.DoubleSide; o.material.clippingPlanes = [corte]; }
-    });
-    scene.add(g.scene);
-  }
+  modelos.forEach(agregarModelo);
   for (const g of vidrios) {
     g.scene.traverse((o) => {
       if (!o.isMesh) return;
@@ -70,15 +84,28 @@ async function iniciar() {
         depthWrite: false, side: THREE.DoubleSide, clippingPlanes: [corte],
       });
       o.renderOrder = 2;
+      if (!agua) colision.push(o);
     });
     scene.add(g.scene);
   }
+  // el resto (p. ej. planta alta) se carga en segundo plano, ya con el recorrido andando
+  const resto = orden.slice(nIni);
+  if (resto.length) {
+    $('carga-fondo').hidden = false; $('carga-fondo').textContent = esAlta ? 'Cargando planta baja…' : 'Cargando planta alta…';
+    const l2 = new GLTFLoader().setMeshoptDecoder(MeshoptDecoder);
+    cargaResto = Promise.all(resto.map((f) => l2.loadAsync(base + f).then((g) => { plantasCargadas.add(plantaDe(f)); return g; }))).then((gs) => {
+      gs.forEach(agregarModelo); estado.completo = true; $('carga-fondo').hidden = true;
+    });
+  } else estado.completo = true;
   crearPuntos();
   armarLista();
+  armarMinimapa();
+  armarEtiquetas();
   estado.cargado = true;
   $('carga').classList.add('oculto');
   const inicial = (location.hash.match(/punto=([\w-]+)/) || [])[1];
   irA(puntos[inicial] ? inicial : cfg.inicio, true);
+  estado.cargadoInicio = true;
 }
 
 function crearEntorno(e) {
@@ -112,13 +139,15 @@ function crearPuntos() {
 const nivel = (p) => (p.planta === 'Planta alta' ? 'alta' : 'baja');
 function actualizarMarcadores() {
   const actual = puntos[estado.punto];
+  const yo = posBlender(); const miNivel = actual ? nivel(actual) : (yo.z > 3.6 ? 'alta' : 'baja');
   for (const p of Object.values(puntos)) {
-    const visible = estado.modo === 'recorrido' && actual && p.id !== actual.id && nivel(p) === nivel(actual) &&
-      Math.hypot(p.pos[0] - actual.pos[0], p.pos[1] - actual.pos[1]) < 22;
+    const visible = estado.modo === 'recorrido' && (!actual || p.id !== actual.id) && nivel(p) === miNivel &&
+      Math.hypot(p.pos[0] - yo.x, p.pos[1] - yo.y) < 22;
     p.marcador.visible = visible;
   }
 }
 
+function posBlender() { const c = camera.position; return { x: c.x, y: -c.z, z: c.y }; }
 function ojo(p) { return b2t(p.pos[0], p.pos[1], p.piso + (cfg.alturaOjo || 1.55)); }
 function angulosHacia(desde, p) {
   if (!p.mirar) return { yaw: estado.yaw, pitch: 0 };
@@ -130,10 +159,13 @@ let anim = null;
 function irA(id, instantaneo = false) {
   let p = puntos[id]; if (!p) return;
   if (p.ir) p = puntos[p.ir];
+  if (!plantasCargadas.has(p.planta)) {
+    mostrarEtiqueta('Cargando…'); cargaResto.then(() => irA(p.id, instantaneo)); return;
+  }
   if (estado.modo !== 'recorrido') ponerModo('recorrido', true);
   const destino = ojo(p);
   const ang = angulosHacia(destino, p);
-  estado.punto = p.id;
+  estado.punto = p.id; estado.piso = p.piso; estado.pisoObjetivo = p.piso;
   history.replaceState(null, '', `#punto=${p.id}`);
   mostrarEtiqueta(p.nombre + (p.m2 ? ` · ${p.m2.toLocaleString('es-AR')} m²` : ''));
   if (instantaneo || reducirMovimiento) {
@@ -214,14 +246,70 @@ function hover(e) {
   if (id) puntos[id].marcador.scale.setScalar(1.25);
 }
 
-// teclado: flechas para mirar
+// ---------- caminata libre: W A S D / flechas / joystick, con colisiones y escalera ----------
+const teclas = new Set();
+const mapa = { KeyW: 'ad', ArrowUp: 'ad', KeyS: 'at', ArrowDown: 'at', KeyA: 'iz', KeyD: 'de', ArrowLeft: 'gi', ArrowRight: 'gd', ShiftLeft: 'rap', ShiftRight: 'rap' };
 window.addEventListener('keydown', (e) => {
-  if (estado.modo !== 'recorrido') return;
-  const k = 0.08;
-  if (e.key === 'ArrowLeft') estado.yaw += k; else if (e.key === 'ArrowRight') estado.yaw -= k;
-  else if (e.key === 'ArrowUp') estado.pitch = Math.min(1.2, estado.pitch + k);
-  else if (e.key === 'ArrowDown') estado.pitch = Math.max(-1.2, estado.pitch - k);
+  if (estado.modo !== 'recorrido' || !mapa[e.code]) return;
+  teclas.add(mapa[e.code]); e.preventDefault(); ocultarAyuda();
 });
+window.addEventListener('keyup', (e) => { if (mapa[e.code]) teclas.delete(mapa[e.code]); });
+window.addEventListener('blur', () => teclas.clear());
+const joy = { x: 0, y: 0, id: null };
+{
+  const j = $('joystick'), k = $('joy-perilla');
+  const mover = (e) => {
+    const r = j.getBoundingClientRect(); const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+    let dx = e.clientX - cx, dy = e.clientY - cy; const m = Math.hypot(dx, dy), max = r.width / 2 - 10;
+    if (m > max) { dx *= max / m; dy *= max / m; }
+    joy.x = dx / max; joy.y = dy / max; k.style.transform = `translate(${dx}px, ${dy}px)`;
+  };
+  j.addEventListener('pointerdown', (e) => { joy.id = e.pointerId; j.setPointerCapture(e.pointerId); mover(e); ocultarAyuda(); e.stopPropagation(); });
+  j.addEventListener('pointermove', (e) => { if (e.pointerId === joy.id) mover(e); });
+  const fin = (e) => { if (e.pointerId !== joy.id) return; joy.id = null; joy.x = joy.y = 0; k.style.transform = ''; };
+  j.addEventListener('pointerup', fin); j.addEventListener('pointercancel', fin);
+}
+const rayM = new THREE.Raycaster(); rayM.far = 4;
+const ABAJO = new THREE.Vector3(0, -1, 0);
+function bloqueado(desde, dir, dist) {
+  const ojoAlt = desde.clone();
+  for (const h of [0.55, 1.1]) { // rodilla (sobre dos alzadas de escalera) y pecho, desde el piso
+    const o = ojoAlt.clone(); o.y = estado.piso + h;
+    rayM.set(o, dir); rayM.far = dist + 0.3;
+    if (rayM.intersectObjects(colision, false).length) return true;
+  }
+  return false;
+}
+function pisoBajo(pos) {
+  const o = pos.clone(); o.y = estado.piso + 0.55; // un poco arriba del piso actual: detecta escalones de subida
+  rayM.set(o, ABAJO); rayM.far = 4;
+  const h = rayM.intersectObjects(colision, false)[0];
+  return h ? h.point.y : null;
+}
+function caminar(dt) {
+  const ad = (teclas.has('ad') ? 1 : 0) - (teclas.has('at') ? 1 : 0) - joy.y;
+  const la = (teclas.has('de') ? 1 : 0) - (teclas.has('iz') ? 1 : 0);
+  const gi = (teclas.has('gi') ? 1 : 0) - (teclas.has('gd') ? 1 : 0) - joy.x * 0.9;
+  if (Math.abs(gi) > 0.02) estado.yaw += gi * dt * 1.6;
+  if (Math.abs(ad) < 0.05 && Math.abs(la) < 0.05) return false;
+  if (estado.piso == null) estado.piso = camera.position.y - (cfg.alturaOjo || 1.55);
+  const vel = (teclas.has('rap') ? 3.0 : 1.5) * dt;
+  const fr = new THREE.Vector3(-Math.sin(estado.yaw), 0, -Math.cos(estado.yaw));
+  const de = new THREE.Vector3(fr.z * -1, 0, fr.x);
+  const paso = fr.multiplyScalar(ad * vel).add(de.multiplyScalar(la * vel));
+  // deslizar contra las paredes: probar el movimiento completo, después cada eje
+  for (const intento of [paso, new THREE.Vector3(paso.x, 0, 0), new THREE.Vector3(0, 0, paso.z)]) {
+    const d = intento.length(); if (d < 1e-5) continue;
+    if (bloqueado(camera.position, intento.clone().normalize(), d)) continue;
+    const nueva = camera.position.clone().add(intento);
+    const y = pisoBajo(nueva);
+    if (y == null || Math.abs(y - estado.piso) > 0.45) continue; // sin piso, escalón alto o caída (pileta, hueco)
+    camera.position.copy(nueva); estado.pisoObjetivo = y;
+    break;
+  }
+  if (estado.punto) { estado.punto = null; history.replaceState(null, '', location.pathname + location.search); }
+  return true;
+}
 
 // ---------- modos: recorrido / maqueta ----------
 function ponerModo(m, silencioso = false) {
@@ -270,8 +358,77 @@ function toggleLista(v) {
 }
 $('btn-ambientes').addEventListener('click', () => toggleLista());
 
+// ---------- minimapa (plano con la ubicación) ----------
+const NS = 'http://www.w3.org/2000/svg';
+const svg = $('minimapa'); let svgAmb = [], svgYo, svgCono;
+const el = (t, a) => { const n = document.createElementNS(NS, t); for (const k in a) n.setAttribute(k, a[k]); return n; };
+const sy = (y) => -y; // norte (fondo) arriba
+function armarMinimapa() {
+  const pl = cfg.plano; if (!pl) { svg.style.display = 'none'; return; }
+  const [x0, x1, y0, y1] = pl.lote;
+  svg.appendChild(el('rect', { class: 'lote', x: x0, y: sy(y1), width: x1 - x0, height: y1 - y0 }));
+  for (const e of pl.exterior) { const [a, b, c, d] = e.r; svg.appendChild(el('rect', { class: 'ext ' + e.tipo, x: a, y: sy(d), width: b - a, height: d - c })); }
+  for (const a of pl.ambientes) {
+    const [x0, x1, y0, y1] = a.r; const g = el('g', {});
+    const r = el('rect', { class: 'amb', x: x0, y: sy(y1), width: x1 - x0, height: y1 - y0 });
+    const t = el('text', { x: (x0 + x1) / 2, y: sy((y0 + y1) / 2) }); t.textContent = (x1 - x0) > 1 ? a.nombre : '';
+    g.append(r, t); g.dataset.planta = a.planta; if (a.punto) r.addEventListener('click', () => irA(a.punto));
+    const ti = el('title', {}); ti.textContent = a.nombre + (a.m2 ? ` · ${a.m2} m²` : ''); r.appendChild(ti);
+    svg.appendChild(g); svgAmb.push({ g, r, a });
+  }
+  svgCono = el('path', { class: 'cono' }); svgYo = el('circle', { class: 'yo', r: 0.28 });
+  svg.append(svgCono, svgYo);
+}
+function actualizarMinimapa() {
+  if (!svgYo) return;
+  const yo = posBlender(); const maq = estado.modo === 'maqueta';
+  const alta = maq ? estado.corte !== 'pb' : yo.z > 3.6;
+  svgYo.style.display = maq ? 'none' : '';
+  for (const { g, r, a } of svgAmb) {
+    g.style.display = (a.planta === 'alta') === alta ? '' : 'none';
+    r.classList.toggle('actual', !maq && yo.x > a.r[0] && yo.x < a.r[1] && yo.y > a.r[2] && yo.y < a.r[3]);
+  }
+  // ventana de 9 × 14 m que sigue a la cámara
+  const W = 9.4, H = 14.4, [lx0, lx1, ly0, ly1] = cfg.plano.lote;
+  const cy = maq ? 8.5 : THREE.MathUtils.clamp(yo.y, ly0 + H / 2 - 4, ly1 - H / 2 + 1);
+  svg.setAttribute('viewBox', `${(lx0 + lx1) / 2 - W / 2} ${sy(cy) - H / 2} ${W} ${H}`);
+  svgYo.setAttribute('cx', yo.x); svgYo.setAttribute('cy', sy(yo.y));
+  const a = estado.yaw, L = 2.2, ap = 0.5; // dirección de la mirada en el plano
+  const dir = (ang) => [yo.x - Math.sin(ang) * L, sy(yo.y + Math.cos(ang) * L)];
+  const [p1, p2] = [dir(a - ap), dir(a + ap)];
+  svgCono.setAttribute('d', `M${yo.x},${sy(yo.y)} L${p1[0]},${p1[1]} L${p2[0]},${p2[1]} Z`);
+  svgCono.style.display = estado.modo === 'recorrido' ? '' : 'none';
+}
+
+// ---------- etiquetas de ambientes en la maqueta ----------
+let etiquetas = [];
+function armarEtiquetas() {
+  const cont = $('etiquetas'); if (!cfg.plano) return;
+  for (const a of cfg.plano.ambientes) {
+    if ((a.r[1] - a.r[0]) < 1.2) continue;
+    const b = document.createElement('button');
+    b.innerHTML = a.nombre + (a.m2 ? `<small>${a.m2.toLocaleString('es-AR')} m²</small>` : '');
+    if (a.punto) b.addEventListener('click', () => irA(a.punto));
+    cont.appendChild(b);
+    const z = a.planta === 'alta' ? 2.95 : 0.12;
+    etiquetas.push({ b, a, pos: b2t((a.r[0] + a.r[1]) / 2, (a.r[2] + a.r[3]) / 2, z + 0.4) });
+  }
+}
+const vTmp = new THREE.Vector3();
+function actualizarEtiquetas() {
+  const ver = estado.modo === 'maqueta';
+  for (const e of etiquetas) {
+    const deEstaPlanta = estado.corte === 'pb' ? e.a.planta === 'baja' : e.a.planta === 'alta';
+    if (!ver || !deEstaPlanta) { e.b.style.display = 'none'; continue; }
+    vTmp.copy(e.pos).project(camera);
+    if (vTmp.z > 1) { e.b.style.display = 'none'; continue; }
+    e.b.style.display = ''; e.b.style.left = ((vTmp.x + 1) / 2 * innerWidth) + 'px'; e.b.style.top = ((1 - vTmp.y) / 2 * innerHeight) + 'px';
+  }
+}
+
 let ayudaOculta = false;
 function ocultarAyuda() { if (!ayudaOculta) { ayudaOculta = true; $('ayuda').classList.add('oculto'); } }
+if (matchMedia('(pointer: coarse)').matches) $('ayuda').textContent = 'Arrastrá para mirar · usá el joystick para caminar';
 setTimeout(ocultarAyuda, 9000);
 
 // ---------- bucle ----------
@@ -291,12 +448,22 @@ renderer.setAnimationLoop(() => {
       estado.pitch = anim.pitch0 + (anim.pitch1 - anim.pitch0) * s;
       if (anim.t >= 1) anim = null;
     }
+    if (!anim && estado.cargado) {
+      const movio = caminar(dt);
+      if (estado.pisoObjetivo != null && estado.piso != null) {
+        const dif = estado.pisoObjetivo - estado.piso;
+        estado.piso += Math.abs(dif) < 0.005 ? dif : dif * Math.min(1, dt * 10);
+        camera.position.y = estado.piso + (cfg.alturaOjo || 1.55);
+      }
+      if (movio) actualizarMarcadores();
+    }
     const fovBase = camera.aspect < 0.8 ? estado.fov + 8 : estado.fov; // celular vertical: más campo
     if (camera.fov !== fovBase) { camera.fov = fovBase; camera.updateProjectionMatrix(); }
     camera.rotation.set(estado.pitch, estado.yaw, 0);
   } else {
     orbit.update();
   }
+  actualizarMinimapa(); actualizarEtiquetas();
   renderer.render(scene, camera);
 });
 

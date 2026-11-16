@@ -128,3 +128,28 @@ La versión web reproduce el render de Cycles (luz, sombras y manchas de sol). D
 
 ## Bugs propios corregidos en esta fase
 - Las texturas de luz estaban invertidas verticalmente (supuse mal el origen del EXR). Se detectó en la comparación web y se corrigió.
+
+---
+
+# Fase 5 · Caminata, minimapa, etiquetas y QA
+
+## Visor
+- **Caminata libre** con W A S D o flechas (Shift para ir más rápido) y joystick en pantallas táctiles. Choca con muros y vidrios (rayos a la altura de la rodilla y del pecho), sigue el piso y **sube y baja la escalera caminando**. No deja caer a la pileta ni al hueco de la escalera.
+- **Minimapa** con el plano de la planta donde estás, tu posición y hacia dónde mirás. Tocando un ambiente vas ahí. En la maqueta muestra la planta del corte.
+- **Etiquetas** con nombre y m² sobre los ambientes en la maqueta, clicables.
+- **Carga progresiva:** primero el exterior y la planta donde arranca el recorrido (~2,3 MB), y el resto en segundo plano. Si vas a una planta que todavía no cargó, el visor espera.
+
+## Cambios en el modelo
+- **Bug de la Fase 1 corregido:** los escalones que pasan sobre el toilette de PB eran bloques hasta el piso y el muro del toilette atravesaba la escalera. Ahora los escalones 12 a 15 son losas de 0,30 m y el muro termina a 1,94 m, debajo de la escalera. Se detectó probando la caminata. Interiores vueltos a hornear.
+- **Sin casa vecina** (pedido del usuario, para no confundir): se sacó del visor y el exterior se volvió a hornear sin ella, así no quedan su luz ni sus sombras. La cara de la medianera hacia el lote vecino pasa a revoque.
+
+## Pesos finales
+exterior 1,04 MB · interior PB 1,21 MB · interior PA 1,42 MB · vidrios 0,01 MB → **3,6 MB** (+ ~0,6 MB del visor).
+
+## Pruebas (Chrome sin pantalla, render por software)
+- Escritorio 1280×720 y celular 390×844 (táctil): sin errores de JavaScript.
+- Carga inicial local: ~1,2 s.
+- Caminata hacia el fondo: frena a 0,35 m del vidrio de la corrediza (Y 12,50).
+- Escalera: sube de PB (0,12) a PA (2,95) y baja de nuevo.
+- Links directos a ambientes de PA (`#punto=dorm_fondo`, `bano`, `balcon`): correctos.
+- **Pendiente (lo tiene que hacer el usuario):** probar en un Android y un iPhone reales. La fluidez real depende de la placa de video del teléfono.

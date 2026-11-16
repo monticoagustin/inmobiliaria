@@ -46,3 +46,23 @@ html, body { margin: 0; height: 100%; overflow: hidden; background: #cfe0f2; col
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; }
 }
+
+#minimapa { position: fixed; right: 12px; bottom: max(16px, env(safe-area-inset-bottom)); width: 150px; height: 230px; background: rgba(255,255,255,.9); border-radius: 12px; box-shadow: var(--sombra); z-index: 5; }
+#minimapa .lote { fill: #e9efe2; stroke: #b9c4ad; stroke-width: .06; }
+#minimapa .ext { fill: #dfe4e8; }
+#minimapa .ext.pileta { fill: #9fd3de; }
+#minimapa .ext.casa { fill: #cfd6dc; }
+#minimapa .amb { fill: #fff; stroke: #6d767e; stroke-width: .05; cursor: pointer; }
+#minimapa .amb:hover { fill: #e6efeb; }
+#minimapa .amb.actual { fill: color-mix(in srgb, var(--acento) 22%, white); }
+#minimapa text { font-size: .42px; fill: #3b4248; pointer-events: none; text-anchor: middle; dominant-baseline: middle; }
+#minimapa .yo { fill: var(--acento); stroke: #fff; stroke-width: .06; }
+#minimapa .cono { fill: var(--acento); opacity: .25; }
+#joystick { position: fixed; left: 18px; bottom: calc(max(16px, env(safe-area-inset-bottom)) + 8px); width: 110px; height: 110px; border-radius: 50%; background: rgba(255,255,255,.35); border: 2px solid rgba(255,255,255,.8); z-index: 6; display: none; touch-action: none; }
+#joy-perilla { position: absolute; left: 35px; top: 35px; width: 40px; height: 40px; border-radius: 50%; background: rgba(255,255,255,.9); box-shadow: var(--sombra); }
+@media (pointer: coarse) { #joystick { display: block; } #ayuda { bottom: calc(max(16px, env(safe-area-inset-bottom)) + 136px); } #modos { left: auto; right: 12px; transform: none; bottom: calc(max(16px, env(safe-area-inset-bottom)) + 8px); flex-direction: column; } #minimapa { top: 64px; bottom: auto; width: 96px; height: 150px; } #plantas { bottom: calc(max(16px, env(safe-area-inset-bottom)) + 120px); } }
+#etiquetas { position: fixed; inset: 0; pointer-events: none; z-index: 4; }
+#etiquetas button { position: absolute; transform: translate(-50%, -50%); pointer-events: auto; font: inherit; font-size: 12px; font-weight: 600; border: 0; border-radius: 8px; padding: 5px 9px; background: rgba(255,255,255,.92); box-shadow: var(--sombra); cursor: pointer; white-space: nowrap; }
+#etiquetas button small { display: block; font-weight: 400; color: #5a6168; font-size: 11px; }
+#carga-fondo { position: fixed; left: 12px; top: 64px; font-size: 12px; background: rgba(255,255,255,.9); padding: 5px 9px; border-radius: 8px; box-shadow: var(--sombra); z-index: 5; }
+#carga-fondo[hidden] { display: none; }

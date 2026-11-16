@@ -9,18 +9,16 @@
   "modelos": [
     "exterior.glb",
     "interior_pb.glb",
-    "interior_pa.glb",
-    "contexto.glb"
+    "interior_pa.glb"
   ],
   "vidrios": [
-    "vidrios.glb",
-    "ctx_vidrios.glb"
+    "vidrios.glb"
   ],
   "entorno": {
     "color": "#7c9a46",
     "lotes": [
       0,
-      15.6,
+      7.8,
       0,
       32.2
     ]
@@ -30,7 +28,7 @@
   "alturaOjo": 1.55,
   "maqueta": {
     "centro": [
-      7.8,
+      4.2,
       10.5,
       1.5
     ],
@@ -280,5 +278,168 @@
       "ir": "estar",
       "soloMarcador": true
     }
-  ]
+  ],
+  "cargaInicial": 2,
+  "plano": {
+    "lote": [
+      0,
+      7.8,
+      0,
+      32.2
+    ],
+    "exterior": [
+      {
+        "tipo": "casa",
+        "r": [
+          3.0,
+          7.8,
+          4.0,
+          12.94
+        ]
+      },
+      {
+        "tipo": "pileta",
+        "r": [
+          2.8,
+          5.8,
+          15.95,
+          22.95
+        ]
+      },
+      {
+        "tipo": "solado",
+        "r": [
+          0.15,
+          7.8,
+          12.94,
+          15.45
+        ]
+      },
+      {
+        "tipo": "pergola",
+        "r": [
+          0.15,
+          3.0,
+          3.0,
+          12.94
+        ]
+      }
+    ],
+    "ambientes": [
+      {
+        "nombre": "Estar",
+        "planta": "baja",
+        "r": [
+          4.07,
+          7.65,
+          4.15,
+          8.89
+        ],
+        "punto": "estar",
+        "m2": 16.92
+      },
+      {
+        "nombre": "Cocina-comedor",
+        "planta": "baja",
+        "r": [
+          3.15,
+          7.65,
+          8.89,
+          12.79
+        ],
+        "punto": "cocina",
+        "m2": 17.55
+      },
+      {
+        "nombre": "Toilette",
+        "planta": "baja",
+        "r": [
+          3.15,
+          3.95,
+          6.85,
+          8.86
+        ]
+      },
+      {
+        "nombre": "Escalera",
+        "planta": "baja",
+        "r": [
+          3.15,
+          3.95,
+          4.15,
+          6.73
+        ],
+        "punto": "subir"
+      },
+      {
+        "nombre": "Dormitorio 1",
+        "planta": "alta",
+        "r": [
+          4.07,
+          7.65,
+          4.15,
+          7.57
+        ],
+        "punto": "dorm_frente",
+        "m2": 12.17
+      },
+      {
+        "nombre": "Dormitorio 2",
+        "planta": "alta",
+        "r": [
+          4.93,
+          7.65,
+          7.69,
+          11.61
+        ],
+        "punto": "dorm_fondo",
+        "m2": 10.66
+      },
+      {
+        "nombre": "Baño",
+        "planta": "alta",
+        "r": [
+          3.15,
+          4.78,
+          10.79,
+          12.79
+        ],
+        "punto": "bano",
+        "m2": 3.26
+      },
+      {
+        "nombre": "Palier",
+        "planta": "alta",
+        "r": [
+          3.15,
+          4.78,
+          7.7,
+          10.67
+        ],
+        "punto": "hall_pa"
+      },
+      {
+        "nombre": "Balcón",
+        "planta": "alta",
+        "r": [
+          4.93,
+          7.65,
+          11.75,
+          12.94
+        ],
+        "punto": "balcon"
+      },
+      {
+        "nombre": "Escalera",
+        "planta": "alta",
+        "r": [
+          3.15,
+          3.95,
+          4.15,
+          7.7
+        ],
+        "punto": "bajar"
+      }
+    ]
+  }
 }
