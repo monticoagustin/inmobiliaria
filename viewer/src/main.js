@@ -298,9 +298,8 @@ canvas.addEventListener('pointermove', (e) => {
   const dx = e.clientX - arrastre.x, dy = e.clientY - arrastre.y;
   arrastre.x = e.clientX; arrastre.y = e.clientY;
   if (Math.hypot(e.clientX - arrastre.x0, e.clientY - arrastre.y0) > 6) arrastre.movio = true;
-  // arrastrar mueve la vista hacia el mismo lado que el dedo/mouse (ejes invertidos a pedido)
   const k = (estado.fov / 70) * 0.0021;
-  estado.yaw -= dx * k; estado.pitch = THREE.MathUtils.clamp(estado.pitch - dy * k, -1.2, 1.2);
+  estado.yaw += dx * k; estado.pitch = THREE.MathUtils.clamp(estado.pitch + dy * k, -1.2, 1.2);
   if (anim) { anim.yaw1 = estado.yaw; anim.pitch1 = estado.pitch; }
 });
 function finArrastre(e) {
